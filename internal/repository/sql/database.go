@@ -12,6 +12,7 @@ import (
 	"gorm.io/gorm"
 )
 
+// BuildConnection создание подключения к БД
 func BuildConnection(log *slog.Logger, config *config.GophermartConfig) (*gorm.DB, error) {
 	if config.DSN == "" {
 		log.Error("Конфиг ДБ пустой")
@@ -40,18 +41,19 @@ func BuildConnection(log *slog.Logger, config *config.GophermartConfig) (*gorm.D
 	return db, nil
 }
 
+// MigrateDataBase миграция данных БД
 func MigrateDataBase(log *slog.Logger, config *config.GophermartConfig) error {
 	if config.DSN == "" {
 		log.Error("Конфиг ДБ пустой")
 		return errors.New("DSL required")
 	}
 	m, err := migrate.New("file://migrations", config.DSN)
-	if errUp := m.Up(); errUp != nil {
-		log.Error("Не удалось <<апнуть>> БД", "error", errUp)
-	}
 	if err != nil {
 		log.Error("ошибка миграции", "error", err)
 		return err
+	}
+	if errUp := m.Up(); errUp != nil {
+		log.Error("Не удалось <<апнуть>> БД", "error", errUp)
 	}
 
 	version, dirty, err := m.Version()

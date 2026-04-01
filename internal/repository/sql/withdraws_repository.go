@@ -9,16 +9,19 @@ import (
 	"gorm.io/gorm"
 )
 
+// BuildWithdrawsRepo создание репозитория списаний баллов
 func BuildWithdrawsRepo(db *gorm.DB) WithdrawsRepoImpl {
 	return WithdrawsRepoImpl{
 		db,
 	}
 }
 
+// WithdrawsRepoImpl репозиторий списаний баллов
 type WithdrawsRepoImpl struct {
 	db *gorm.DB
 }
 
+// AddWithdraw добавить списание
 func (w *WithdrawsRepoImpl) AddWithdraw(ctx context.Context, log *slog.Logger, accountId int64, withdraw *model.WithdrawRequest) error {
 	withdrawDB := &model.Withdrawals{
 		AccountId:   accountId,
@@ -35,6 +38,7 @@ func (w *WithdrawsRepoImpl) AddWithdraw(ctx context.Context, log *slog.Logger, a
 	return nil
 }
 
+// GetWithdrawals поиск всех списаний для пользователя
 func (b *WithdrawsRepoImpl) GetWithdrawals(ctx context.Context, log *slog.Logger, accountId int64) ([]*model.Withdrawals, error) {
 	var withdrawals []*model.Withdrawals
 

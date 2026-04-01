@@ -14,21 +14,25 @@ import (
 	"github.com/serg1732/practicum-first-coursework/internal/model"
 )
 
+// AccountRepository интерфейс по работе с аккаунтами в БД
 type AccountRepository interface {
 	Create(ctx context.Context, log *slog.Logger, authorization *model.Accounts) error
 	Login(ctx context.Context, log *slog.Logger, auth *model.Accounts) (*int64, error)
 }
 
+// BuildAuthorizationHandler создает обработчик запросов на регистрацию / авторизацию
 func BuildAuthorizationHandler(repo AccountRepository) AuthorizationHandlerImpl {
 	return AuthorizationHandlerImpl{
 		accountRepo: repo,
 	}
 }
 
+// AuthorizationHandlerImpl обработчик регистрации и авторизации
 type AuthorizationHandlerImpl struct {
 	accountRepo AccountRepository
 }
 
+// Register handler регистрации пользователя
 func (a *AuthorizationHandlerImpl) Register(log *slog.Logger, config *config.GophermartConfig) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var accData model.Accounts
@@ -38,6 +42,7 @@ func (a *AuthorizationHandlerImpl) Register(log *slog.Logger, config *config.Gop
 		if err := decoder.Decode(&accData); err != nil {
 			log.Error("Ошибка при конвертации тела запрос в JSON")
 			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
 		}
 
 		if err := a.accountRepo.Create(r.Context(), log, &accData); err != nil {
@@ -65,6 +70,7 @@ func (a *AuthorizationHandlerImpl) Register(log *slog.Logger, config *config.Gop
 	}
 }
 
+// Login handler авторизации пользователя
 func (a *AuthorizationHandlerImpl) Login(log *slog.Logger, config *config.GophermartConfig) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var accData model.Accounts
@@ -73,6 +79,7 @@ func (a *AuthorizationHandlerImpl) Login(log *slog.Logger, config *config.Gopher
 		if err := decoder.Decode(&accData); err != nil {
 			log.Error("Ошибка при конвертации тела запрос в JSON")
 			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
 		}
 		accountId, err := a.accountRepo.Login(r.Context(), log, &accData)
 		if err != nil {
@@ -93,6 +100,7 @@ func (a *AuthorizationHandlerImpl) Login(log *slog.Logger, config *config.Gopher
 	}
 }
 
+// Генерация JWT
 func generateJWT(log *slog.Logger, cfg *config.GophermartConfig, accData *model.Accounts) (string, error) {
 	claims := &model.Claims{
 		AccountID: accData.ID,

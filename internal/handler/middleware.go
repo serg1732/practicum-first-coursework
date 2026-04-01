@@ -12,6 +12,7 @@ import (
 	"github.com/serg1732/practicum-first-coursework/internal/model"
 )
 
+// JwtMiddleware middleware который читает и проверяет JWT
 func JwtMiddleware(config *config.GophermartConfig) func(http.Handler) http.Handler {
 	return func(h http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -29,13 +30,13 @@ func JwtMiddleware(config *config.GophermartConfig) func(http.Handler) http.Hand
 				return []byte(config.Secret), nil
 			})
 
-			if claims.ExpiresAt.Before(time.Now()) {
-				http.Error(w, "Истек срок действия токена", http.StatusUnauthorized)
+			if err != nil {
+				http.Error(w, "некорректный токен: "+err.Error(), http.StatusUnauthorized)
 				return
 			}
 
-			if err != nil {
-				http.Error(w, "некорректный токен: "+err.Error(), http.StatusUnauthorized)
+			if claims.ExpiresAt.Before(time.Now()) {
+				http.Error(w, "Истек срок действия токена", http.StatusUnauthorized)
 				return
 			}
 
@@ -49,6 +50,7 @@ func JwtMiddleware(config *config.GophermartConfig) func(http.Handler) http.Hand
 	}
 }
 
+// extractBearerToken получение токена без Bearer
 func extractBearerToken(r *http.Request) (string, error) {
 	authHeader := r.Header.Get("Authorization")
 	if authHeader == "" {

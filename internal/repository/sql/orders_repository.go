@@ -10,16 +10,19 @@ import (
 	"gorm.io/gorm/clause"
 )
 
+// BuildOrdersRepo создание репозитория по работе с заказами
 func BuildOrdersRepo(db *gorm.DB) OrdersRepoImpl {
 	return OrdersRepoImpl{
 		db,
 	}
 }
 
+// OrdersRepoImpl репозиторий заказов
 type OrdersRepoImpl struct {
 	db *gorm.DB
 }
 
+// AddNewOrder доблавение новного заказа
 func (o *OrdersRepoImpl) AddNewOrder(ctx context.Context, log *slog.Logger, accountId int64, orderId string) (bool, error) {
 	var order *model.OrderDB
 	tx := o.db.WithContext(ctx).
@@ -40,6 +43,7 @@ func (o *OrdersRepoImpl) AddNewOrder(ctx context.Context, log *slog.Logger, acco
 	return false, nil
 }
 
+// UpdateOrderStatus Обновление статуса и запись в БД
 func (o *OrdersRepoImpl) UpdateOrderStatus(ctx context.Context, log *slog.Logger, orderId string, st string) error {
 	if err := o.db.WithContext(ctx).Table("orders").Where("order_id = ?", orderId).Update("status", st).Error; err != nil {
 		log.Error("ошибка при обновление статуса", "error", err)
@@ -48,6 +52,7 @@ func (o *OrdersRepoImpl) UpdateOrderStatus(ctx context.Context, log *slog.Logger
 	return nil
 }
 
+// UpdateOrderStatusSum Обновление статуса и баланса
 func (o *OrdersRepoImpl) UpdateOrderStatusSum(ctx context.Context, log *slog.Logger, orderId string, st string, accrual float64) error {
 	var err = o.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		type OrderReturn struct {
@@ -55,7 +60,7 @@ func (o *OrdersRepoImpl) UpdateOrderStatusSum(ctx context.Context, log *slog.Log
 			OrderId   string `gorm:"order_id" json:"order_id"`
 		}
 		var orderReturn OrderReturn
-		if err := o.db.WithContext(ctx).
+		if err := tx.WithContext(ctx).
 			Table("orders").
 			Model(&orderReturn).
 			Clauses(clause.Returning{
@@ -74,7 +79,7 @@ func (o *OrdersRepoImpl) UpdateOrderStatusSum(ctx context.Context, log *slog.Log
 
 		var balance model.BalanceDB
 
-		if err := o.db.Table("balance").WithContext(ctx).
+		if err := tx.Table("balance").WithContext(ctx).
 			Clauses(clause.Locking{Strength: "UPDATE"}).
 			Where("account_id = ?", orderReturn.AccountId).
 			First(&balance).Error; err != nil {
@@ -84,7 +89,7 @@ func (o *OrdersRepoImpl) UpdateOrderStatusSum(ctx context.Context, log *slog.Log
 
 		balance.Balance += accrual
 
-		if err := o.db.WithContext(ctx).Table("balance").Where("account_id = ?", orderReturn.AccountId).Save(&balance).Error; err != nil {
+		if err := tx.WithContext(ctx).Table("balance").Where("account_id = ?", orderReturn.AccountId).Save(&balance).Error; err != nil {
 			log.Error("Ошибка при записи баланса", "error", err)
 			return err
 		}
@@ -93,6 +98,7 @@ func (o *OrdersRepoImpl) UpdateOrderStatusSum(ctx context.Context, log *slog.Log
 	return err
 }
 
+// GetAllOrders получение всех заказов пользователя
 func (o *OrdersRepoImpl) GetAllOrders(ctx context.Context, log *slog.Logger, accountId int64) ([]model.Order, error) {
 	var orders []model.Order
 	if err := o.db.WithContext(ctx).
@@ -106,6 +112,7 @@ func (o *OrdersRepoImpl) GetAllOrders(ctx context.Context, log *slog.Logger, acc
 	return orders, nil
 }
 
+// GetNewOrProcessingOrders Получение всех заказов NEW / PROCESSING для аккаунта
 func (o *OrdersRepoImpl) GetNewOrProcessingOrders(ctx context.Context, log *slog.Logger) ([]model.Order, error) {
 	var orders []model.Order
 	if err := o.db.WithContext(ctx).
@@ -119,6 +126,7 @@ func (o *OrdersRepoImpl) GetNewOrProcessingOrders(ctx context.Context, log *slog
 	return orders, nil
 }
 
+// FindOrderById поиск заказа
 func (o *OrdersRepoImpl) FindOrderById(ctx context.Context, orderId string) (*model.Order, error) {
 	var order *model.Order
 	err := o.db.WithContext(ctx).

@@ -22,7 +22,7 @@ import (
 )
 
 func main() {
-	log := logger.NewSlogLogger(slog.LevelDebug)
+	log := logger.NewSlogLogger(slog.LevelInfo)
 	log.Debug("Старт модуля")
 	serverConfig, errConfig := config.GetGophermartConfig()
 	log.Debug("Прочитан корнфиг", "config", serverConfig)

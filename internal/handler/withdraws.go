@@ -33,6 +33,7 @@ type WithdrawsHandlerImpl struct {
 	ordersRepo    OrdersRepository
 }
 
+// GetAllWithdraw handler получения всех списаний
 func (wh WithdrawsHandlerImpl) GetAllWithdraw(log *slog.Logger) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var accountId = r.Context().Value("account_id").(int64)
@@ -52,6 +53,7 @@ func (wh WithdrawsHandlerImpl) GetAllWithdraw(log *slog.Logger) http.HandlerFunc
 	}
 }
 
+// BalanceRequest handler получения баланса пользователя
 func (wh *WithdrawsHandlerImpl) BalanceRequest(log *slog.Logger) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var accountId = r.Context().Value("account_id").(int64)
@@ -70,6 +72,7 @@ func (wh *WithdrawsHandlerImpl) BalanceRequest(log *slog.Logger) http.HandlerFun
 	}
 }
 
+// WithdrawRequest handler запроса на списание баллов
 func (wh *WithdrawsHandlerImpl) WithdrawRequest(log *slog.Logger) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var accountId = r.Context().Value("account_id").(int64)

@@ -27,19 +27,21 @@ func BuildDispatcher(client AccuralClient, ordersRepo OrdersRepository, updateCh
 		ordersRepository:       ordersRepo,
 		OrdersStartWorkChannel: updateChannel,
 		OrdersUpdateProcessed:  processedChannel,
+		orderInWork:            map[string]any{},
 	}
 }
 
 type Dispatcher struct {
 	client                 AccuralClient
 	ordersRepository       OrdersRepository
-	rwMutex                sync.RWMutex
+	mutex                  sync.Mutex
 	RateLimitWaitSeconds   int64
 	OrdersStartWorkChannel chan model.Order
 	OrdersUpdateProcessed  chan string
 	orderInWork            map[string]any
 }
 
+// Run запуск обработчиков заказов
 func (d *Dispatcher) Run(ctx context.Context, log *slog.Logger, cfg *config.GophermartConfig) {
 	for i := 0; i < cfg.RateLimit; i++ {
 		go d.worker(ctx, log, cfg.RateLimitDelaySec)
@@ -48,6 +50,7 @@ func (d *Dispatcher) Run(ctx context.Context, log *slog.Logger, cfg *config.Goph
 	go d.orderCompleter(ctx, log)
 }
 
+// orderFinder отбирает заказы и запускает их в обработку
 func (d *Dispatcher) orderFinder(ctx context.Context, log *slog.Logger) {
 	ticker := time.NewTicker(5 * time.Second)
 	for {
@@ -57,42 +60,42 @@ func (d *Dispatcher) orderFinder(ctx context.Context, log *slog.Logger) {
 			if err != nil {
 				log.Error("Ошибка при получении заказов", "error", err)
 			}
+			d.mutex.Lock()
 			for _, order := range orders {
-				d.rwMutex.RLock()
 				if _, ok := d.orderInWork[order.OrderId]; !ok {
+					d.orderInWork[order.OrderId] = order
 					d.OrdersStartWorkChannel <- order
 				}
-				d.rwMutex.RUnlock()
 			}
+			d.mutex.Unlock()
 		case <-ctx.Done():
 			return
 		}
 	}
 }
 
+// orderCompleter завершает работу с заказом
 func (d *Dispatcher) orderCompleter(ctx context.Context, log *slog.Logger) {
 	for {
 		select {
 		case <-ctx.Done():
 			return
 		case orderId := <-d.OrdersUpdateProcessed:
-			d.rwMutex.Lock()
+			d.mutex.Lock()
 			log.Debug("Обработан заказ", "orderId", orderId)
 			delete(d.orderInWork, orderId)
-			d.rwMutex.Unlock()
+			d.mutex.Unlock()
 		}
 	}
 }
 
+// worker обработчик заказа
 func (d *Dispatcher) worker(ctx context.Context, log *slog.Logger, rateLimitDelaySec int) {
 	for {
 		select {
 		case <-ctx.Done():
 			return
 		case order := <-d.OrdersStartWorkChannel:
-			defer func() {
-				d.OrdersUpdateProcessed <- order.OrderId
-			}()
 			if order.Status == model.ORDER_STATUS_NEW {
 				if err := d.ordersRepository.UpdateOrderStatus(ctx, log, order.OrderId, model.ORDER_STATUS_PROCESSING); err != nil {
 					log.Error("Ошибка при изменении статуса заказа")
@@ -127,6 +130,7 @@ func (d *Dispatcher) worker(ctx context.Context, log *slog.Logger, rateLimitDela
 					}
 				}
 			}
+			d.OrdersUpdateProcessed <- order.OrderId
 		}
 	}
 }

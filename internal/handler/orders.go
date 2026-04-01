@@ -31,6 +31,7 @@ type OrdersHandlerImpl struct {
 	ordersRepo OrdersRepository
 }
 
+// GetAllOrders handler получение всех заказов пользователя
 func (o *OrdersHandlerImpl) GetAllOrders(log *slog.Logger) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var accountId = r.Context().Value("account_id").(int64)
@@ -48,6 +49,7 @@ func (o *OrdersHandlerImpl) GetAllOrders(log *slog.Logger) http.HandlerFunc {
 	}
 }
 
+// AddNewOrder handler добавление заказа пользователя
 func (o *OrdersHandlerImpl) AddNewOrder(log *slog.Logger) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var accountId = r.Context().Value("account_id").(int64)
