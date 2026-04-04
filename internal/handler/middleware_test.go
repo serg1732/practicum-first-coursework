@@ -88,7 +88,7 @@ func TestJwtMiddlewareSuccess(t *testing.T) {
 
 	var gotAccountID any
 	next := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		gotAccountID = r.Context().Value("account_id")
+		gotAccountID = r.Context().Value(accountIDKey)
 		w.WriteHeader(http.StatusOK)
 	})
 

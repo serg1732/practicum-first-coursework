@@ -10,13 +10,6 @@ import (
 	"gorm.io/gorm"
 )
 
-// BuildAccountsRepo создание репозитория аккаунтов по запросам в БД
-func BuildAccountsRepo(db *gorm.DB) AccountRepoImpl {
-	return AccountRepoImpl{
-		db,
-	}
-}
-
 // AccountRepoImpl репозиторий аккаунтов
 type AccountRepoImpl struct {
 	db *gorm.DB

@@ -24,12 +24,12 @@ func setupOrdersRepositoryTest(t *testing.T) (*OrdersRepoImpl, sqlmock.Sqlmock, 
 	gdb, err := gorm.Open(postgres.New(postgres.Config{Conn: sqlDB}), &gorm.Config{})
 	assert.NoError(t, err)
 
-	repo := &OrdersRepoImpl{db: gdb}
+	repo := BuildRepository[OrdersRepoImpl](gdb)
 
 	cleanup := func() {
 		_ = sqlDB.Close()
 	}
-	return repo, mock, cleanup
+	return &repo, mock, cleanup
 }
 
 func setupTestLogger() *slog.Logger {

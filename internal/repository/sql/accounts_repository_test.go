@@ -53,7 +53,7 @@ func TestBuildAccountsRepo(t *testing.T) {
 	gdb, _, cleanup := setupAccountsRepoTest(t)
 	defer cleanup()
 
-	repo := BuildAccountsRepo(gdb)
+	repo := BuildRepository[AccountRepoImpl](gdb)
 	assert.NotNil(t, repo)
 }
 
@@ -61,7 +61,7 @@ func TestAccountRepoSuccessCreateAccount(t *testing.T) {
 	gdb, mock, cleanup := setupAccountsRepoTest(t)
 	defer cleanup()
 
-	repo := BuildAccountsRepo(gdb)
+	repo := BuildRepository[AccountRepoImpl](gdb)
 	ctx := context.Background()
 	logger := setupAccountsLogger()
 
@@ -90,7 +90,7 @@ func TestAccountRepoErrorHashCreateAccount(t *testing.T) {
 	gdb, mock, cleanup := setupAccountsRepoTest(t)
 	defer cleanup()
 
-	repo := BuildAccountsRepo(gdb)
+	repo := BuildRepository[AccountRepoImpl](gdb)
 	ctx := context.Background()
 	logger := setupAccountsLogger()
 
@@ -114,7 +114,7 @@ func TestAccountRepoErrorCreateAccount(t *testing.T) {
 	gdb, mock, cleanup := setupAccountsRepoTest(t)
 	defer cleanup()
 
-	repo := BuildAccountsRepo(gdb)
+	repo := BuildRepository[AccountRepoImpl](gdb)
 	ctx := context.Background()
 	logger := setupAccountsLogger()
 
@@ -140,7 +140,7 @@ func TestAccountRepoErrorCreateBalance(t *testing.T) {
 	gdb, mock, cleanup := setupAccountsRepoTest(t)
 	defer cleanup()
 
-	repo := BuildAccountsRepo(gdb)
+	repo := BuildRepository[AccountRepoImpl](gdb)
 	ctx := context.Background()
 	logger := setupAccountsLogger()
 
@@ -168,7 +168,7 @@ func TestAccountRepoSuccessLogin(t *testing.T) {
 	gdb, mock, cleanup := setupAccountsRepoTest(t)
 	defer cleanup()
 
-	repo := BuildAccountsRepo(gdb)
+	repo := BuildRepository[AccountRepoImpl](gdb)
 	ctx := context.Background()
 	logger := setupAccountsLogger()
 
@@ -197,7 +197,7 @@ func TestAccountRepoErrorLoginAccountNotFound(t *testing.T) {
 	gdb, mock, cleanup := setupAccountsRepoTest(t)
 	defer cleanup()
 
-	repo := BuildAccountsRepo(gdb)
+	repo := BuildRepository[AccountRepoImpl](gdb)
 	ctx := context.Background()
 	logger := setupAccountsLogger()
 
@@ -222,7 +222,7 @@ func TestAccountRepoErrorLoginWrongPassword(t *testing.T) {
 	gdb, mock, cleanup := setupAccountsRepoTest(t)
 	defer cleanup()
 
-	repo := BuildAccountsRepo(gdb)
+	repo := BuildRepository[AccountRepoImpl](gdb)
 	ctx := context.Background()
 	logger := setupAccountsLogger()
 

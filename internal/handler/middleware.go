@@ -44,7 +44,7 @@ func JwtMiddleware(config *config.GophermartConfig) func(http.Handler) http.Hand
 				http.Error(w, "некорректный токен", http.StatusUnauthorized)
 				return
 			}
-			ctx := context.WithValue(r.Context(), "account_id", claims.AccountID)
+			ctx := context.WithValue(r.Context(), accountIDKey, claims.AccountID)
 			h.ServeHTTP(w, r.WithContext(ctx))
 		})
 	}

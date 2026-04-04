@@ -45,36 +45,6 @@ func (_m *OrdersRepository) AddNewOrder(ctx context.Context, log *slog.Logger, a
 	return r0, r1
 }
 
-// FindOrderById provides a mock function with given fields: ctx, orderId
-func (_m *OrdersRepository) FindOrderById(ctx context.Context, orderId string) (*model.Order, error) {
-	ret := _m.Called(ctx, orderId)
-
-	if len(ret) == 0 {
-		panic("no return value specified for FindOrderById")
-	}
-
-	var r0 *model.Order
-	var r1 error
-	if rf, ok := ret.Get(0).(func(context.Context, string) (*model.Order, error)); ok {
-		return rf(ctx, orderId)
-	}
-	if rf, ok := ret.Get(0).(func(context.Context, string) *model.Order); ok {
-		r0 = rf(ctx, orderId)
-	} else {
-		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(*model.Order)
-		}
-	}
-
-	if rf, ok := ret.Get(1).(func(context.Context, string) error); ok {
-		r1 = rf(ctx, orderId)
-	} else {
-		r1 = ret.Error(1)
-	}
-
-	return r0, r1
-}
-
 // GetAllOrders provides a mock function with given fields: ctx, log, accountId
 func (_m *OrdersRepository) GetAllOrders(ctx context.Context, log *slog.Logger, accountId int64) ([]model.Order, error) {
 	ret := _m.Called(ctx, log, accountId)
@@ -103,42 +73,6 @@ func (_m *OrdersRepository) GetAllOrders(ctx context.Context, log *slog.Logger, 
 	}
 
 	return r0, r1
-}
-
-// UpdateOrderStatus provides a mock function with given fields: ctx, log, orderId, st
-func (_m *OrdersRepository) UpdateOrderStatus(ctx context.Context, log *slog.Logger, orderId string, st string) error {
-	ret := _m.Called(ctx, log, orderId, st)
-
-	if len(ret) == 0 {
-		panic("no return value specified for UpdateOrderStatus")
-	}
-
-	var r0 error
-	if rf, ok := ret.Get(0).(func(context.Context, *slog.Logger, string, string) error); ok {
-		r0 = rf(ctx, log, orderId, st)
-	} else {
-		r0 = ret.Error(0)
-	}
-
-	return r0
-}
-
-// UpdateOrderStatusSum provides a mock function with given fields: ctx, log, orderId, st, accural
-func (_m *OrdersRepository) UpdateOrderStatusSum(ctx context.Context, log *slog.Logger, orderId string, st string, accural float64) error {
-	ret := _m.Called(ctx, log, orderId, st, accural)
-
-	if len(ret) == 0 {
-		panic("no return value specified for UpdateOrderStatusSum")
-	}
-
-	var r0 error
-	if rf, ok := ret.Get(0).(func(context.Context, *slog.Logger, string, string, float64) error); ok {
-		r0 = rf(ctx, log, orderId, st, accural)
-	} else {
-		r0 = ret.Error(0)
-	}
-
-	return r0
 }
 
 // NewOrdersRepository creates a new instance of OrdersRepository. It also registers a testing interface on the mock and a cleanup function to assert the mocks expectations.

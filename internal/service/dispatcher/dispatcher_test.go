@@ -2,346 +2,396 @@ package dispatcher
 
 import (
 	"context"
-	"errors"
-	"io"
 	"log/slog"
 	"net/http"
 	"testing"
 	"time"
 
+	"github.com/serg1732/practicum-first-coursework/internal/config"
 	"github.com/serg1732/practicum-first-coursework/internal/model"
 	"github.com/serg1732/practicum-first-coursework/internal/service/dispatcher/mocks"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
-	"github.com/stretchr/testify/require"
 )
 
-func testDispatherLogger() *slog.Logger {
-	return slog.New(slog.NewTextHandler(io.Discard, nil))
+func initLogger() *slog.Logger {
+	return slog.Default()
 }
 
 func intPtr(v int) *int {
 	return &v
 }
 
-func TestBuildDispatcher(t *testing.T) {
-	client := &mocks.AccuralClient{}
-	repo := &mocks.OrdersRepository{}
-	updateCh := make(chan model.Order, 1)
-	processedCh := make(chan string, 1)
-
-	d := BuildDispatcher(client, repo, updateCh, processedCh)
-
-	require.Equal(t, client, d.client)
-	require.Equal(t, repo, d.ordersRepository)
-	require.Equal(t, updateCh, d.OrdersStartWorkChannel)
-	require.Equal(t, processedCh, d.OrdersUpdateProcessed)
+func float64Ptr(v float64) *float64 {
+	return &v
 }
 
-func TestErrorClientErrorSetProcessingInvalid(t *testing.T) {
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
-
-	log := testDispatherLogger()
-	client := mocks.NewAccuralClient(t)
+func TestBuildDispatcher(t *testing.T) {
+	client := mocks.NewAccrualClient(t)
 	repo := mocks.NewOrdersRepository(t)
+	ch := make(chan string, 1)
 
-	order := model.Order{
+	d := BuildDispatcher(client, repo, ch)
+
+	assert.NotNil(t, d.client)
+	assert.NotNil(t, d.ordersRepository)
+	assert.NotNil(t, d.OrdersUpdateProcessed)
+	assert.NotNil(t, d.orderInWork)
+	assert.Empty(t, d.orderInWork)
+}
+
+func TestSuccessProcessRequestNewOrder(t *testing.T) {
+	t.Parallel()
+
+	ctx := context.Background()
+	log := initLogger()
+
+	client := mocks.NewAccrualClient(t)
+	repo := mocks.NewOrdersRepository(t)
+	processedCh := make(chan string, 1)
+
+	d := &Dispatcher{
+		client:                client,
+		ordersRepository:      repo,
+		OrdersUpdateProcessed: processedCh,
+		orderInWork:           map[string]any{},
+	}
+
+	order := &model.Order{
 		OrderId: "12345",
 		Status:  model.ORDER_STATUS_NEW,
 	}
-
-	repo.EXPECT().
-		UpdateOrderStatus(ctx, mock.Anything, order.OrderId, model.ORDER_STATUS_PROCESSING).
+	resp := &model.AccrualResponse{
+		Status: model.ORDER_STATUS_REGISTERED,
+	}
+	repo.On("UpdateOrderStatus", mock.Anything, mock.Anything, order.OrderId, model.ORDER_STATUS_PROCESSING).
 		Return(nil).
 		Once()
-
-	client.EXPECT().
-		GetOrdersAccrual(order.OrderId).
-		Return(nil, intPtr(http.StatusInternalServerError), errors.New("accrual error")).
+	client.On("GetOrdersAccrual", order.OrderId).
+		Return(resp, intPtr(http.StatusOK), nil).
 		Once()
 
-	repo.EXPECT().
-		UpdateOrderStatus(ctx, mock.Anything, order.OrderId, model.ORDER_STATUS_INVALID).
-		Return(nil).
-		Once()
+	err := d.processRequest(ctx, log, order, 0)
+	assert.NoError(t, err)
 
-	d := Dispatcher{
-		client:                 client,
-		ordersRepository:       repo,
-		OrdersStartWorkChannel: make(chan model.Order, 1),
-		OrdersUpdateProcessed:  make(chan string, 1),
-		orderInWork:            make(map[string]any),
+	select {
+	case got := <-processedCh:
+		assert.Equal(t, order.OrderId, got)
+	default:
+		t.Fatal("expected processed order id in channel")
 	}
 
-	go d.worker(ctx, log, 1)
-
-	d.OrdersStartWorkChannel <- order
-
-	require.Eventually(t, func() bool {
-		return true
-	}, 150*time.Millisecond, 10*time.Millisecond)
+	repo.AssertExpectations(t)
+	client.AssertExpectations(t)
 }
 
-func TestWorkerSuccessWithAccrualUpdateStatusSum(t *testing.T) {
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
+func TestErrorProcessRequestOrderMarkedInvalid(t *testing.T) {
+	t.Parallel()
 
-	log := testDispatherLogger()
-	client := mocks.NewAccuralClient(t)
+	ctx := context.Background()
+	log := initLogger()
+
+	client := mocks.NewAccrualClient(t)
 	repo := mocks.NewOrdersRepository(t)
+	processedCh := make(chan string, 1)
 
-	order := model.Order{
-		OrderId: "777",
+	d := &Dispatcher{
+		client:                client,
+		ordersRepository:      repo,
+		OrdersUpdateProcessed: processedCh,
+		orderInWork:           map[string]any{},
+	}
+
+	order := &model.Order{
+		OrderId: "12345",
+		Status:  model.ORDER_STATUS_PROCESSING,
+	}
+	client.On("GetOrdersAccrual", order.OrderId).
+		Return(nil, intPtr(http.StatusInternalServerError), assert.AnError).
+		Once()
+	repo.On("UpdateOrderStatus", mock.Anything, mock.Anything, order.OrderId, model.ORDER_STATUS_INVALID).
+		Return(nil).
+		Once()
+
+	err := d.processRequest(ctx, log, order, 0)
+	assert.NoError(t, err)
+
+	select {
+	case got := <-processedCh:
+		assert.Equal(t, order.OrderId, got)
+	default:
+		t.Fatal("expected processed order id in channel")
+	}
+
+	repo.AssertExpectations(t)
+	client.AssertExpectations(t)
+}
+
+func TestSuccessPocessRequestStatusTooManyRequests(t *testing.T) {
+	t.Parallel()
+
+	ctx := context.Background()
+	log := initLogger()
+
+	client := mocks.NewAccrualClient(t)
+	repo := mocks.NewOrdersRepository(t)
+	processedCh := make(chan string, 1)
+
+	d := &Dispatcher{
+		client:                client,
+		ordersRepository:      repo,
+		OrdersUpdateProcessed: processedCh,
+		orderInWork:           map[string]any{},
+	}
+
+	order := &model.Order{
+		OrderId: "12345",
+		Status:  model.ORDER_STATUS_PROCESSING,
+	}
+
+	client.On("GetOrdersAccrual", order.OrderId).
+		Return(nil, intPtr(http.StatusTooManyRequests), nil).
+		Once()
+
+	start := time.Now()
+	err := d.processRequest(ctx, log, order, 1)
+	elapsed := time.Since(start)
+
+	assert.NoError(t, err)
+	assert.GreaterOrEqual(t, elapsed, time.Second)
+
+	select {
+	case got := <-processedCh:
+		assert.Equal(t, order.OrderId, got)
+	default:
+		t.Fatal("expected processed order id in channel")
+	}
+
+	repo.AssertNotCalled(t, "UpdateOrderStatus", mock.Anything, mock.Anything, mock.Anything, mock.Anything)
+	repo.AssertNotCalled(t, "UpdateOrderStatusSum", mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything)
+	client.AssertExpectations(t)
+}
+
+func TestSuccessProcessRequestStatusWithAccrual(t *testing.T) {
+	t.Parallel()
+
+	ctx := context.Background()
+	log := initLogger()
+
+	client := mocks.NewAccrualClient(t)
+	repo := mocks.NewOrdersRepository(t)
+	processedCh := make(chan string, 1)
+
+	d := &Dispatcher{
+		client:                client,
+		ordersRepository:      repo,
+		OrdersUpdateProcessed: processedCh,
+		orderInWork:           map[string]any{},
+	}
+
+	order := &model.Order{
+		OrderId: "12345",
 		Status:  model.ORDER_STATUS_PROCESSING,
 	}
 
 	accrual := 150.75
+	resp := &model.AccrualResponse{
+		Status:  model.ORDER_STATUS_PROCESSED,
+		Accrual: float64Ptr(accrual),
+	}
 
-	client.EXPECT().
-		GetOrdersAccrual(order.OrderId).
-		Return(&model.AccrualResponse{
-			Status:  model.ORDER_STATUS_PROCESSED,
-			Accrual: &accrual,
-		}, intPtr(http.StatusOK), nil).
+	client.On("GetOrdersAccrual", order.OrderId).
+		Return(resp, intPtr(http.StatusOK), nil).
 		Once()
 
-	repo.EXPECT().
-		UpdateOrderStatusSum(ctx, mock.Anything, order.OrderId, model.ORDER_STATUS_PROCESSED, accrual).
+	repo.On("UpdateOrderStatusSum", mock.Anything, mock.Anything, order.OrderId, model.ORDER_STATUS_PROCESSED, accrual).
 		Return(nil).
 		Once()
 
-	d := Dispatcher{
-		client:                 client,
-		ordersRepository:       repo,
-		OrdersStartWorkChannel: make(chan model.Order, 1),
-		OrdersUpdateProcessed:  make(chan string, 1),
-		orderInWork:            make(map[string]any),
+	err := d.processRequest(ctx, log, order, 0)
+	assert.NoError(t, err)
+
+	select {
+	case got := <-processedCh:
+		assert.Equal(t, order.OrderId, got)
+	default:
+		t.Fatal("expected processed order id in channel")
 	}
 
-	go d.worker(ctx, log, 1)
-
-	d.OrdersStartWorkChannel <- order
-
-	require.Eventually(t, func() bool {
-		return true
-	}, 150*time.Millisecond, 10*time.Millisecond)
+	repo.AssertExpectations(t)
+	client.AssertExpectations(t)
 }
 
-func TestWorkerSuccessWithoutAccrualAndUpdateOnlyStatus(t *testing.T) {
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
+func TestSuccessProcessRequestStatusWithoutAccrual(t *testing.T) {
+	t.Parallel()
 
-	log := testDispatherLogger()
-	client := mocks.NewAccuralClient(t)
+	ctx := context.Background()
+	log := initLogger()
+
+	client := mocks.NewAccrualClient(t)
 	repo := mocks.NewOrdersRepository(t)
+	processedCh := make(chan string, 1)
 
-	order := model.Order{
-		OrderId: "555",
+	d := &Dispatcher{
+		client:                client,
+		ordersRepository:      repo,
+		OrdersUpdateProcessed: processedCh,
+		orderInWork:           map[string]any{},
+	}
+
+	order := &model.Order{
+		OrderId: "12345",
 		Status:  model.ORDER_STATUS_PROCESSING,
 	}
 
-	client.EXPECT().
-		GetOrdersAccrual(order.OrderId).
-		Return(&model.AccrualResponse{
-			Status:  model.ORDER_STATUS_INVALID,
-			Accrual: nil,
-		}, intPtr(http.StatusOK), nil).
+	resp := &model.AccrualResponse{
+		Status:  model.ORDER_STATUS_INVALID,
+		Accrual: nil,
+	}
+
+	client.On("GetOrdersAccrual", order.OrderId).
+		Return(resp, intPtr(http.StatusOK), nil).
 		Once()
 
-	repo.EXPECT().
-		UpdateOrderStatus(ctx, mock.Anything, order.OrderId, model.ORDER_STATUS_INVALID).
+	repo.On("UpdateOrderStatus", mock.Anything, mock.Anything, order.OrderId, model.ORDER_STATUS_INVALID).
 		Return(nil).
 		Once()
 
-	d := Dispatcher{
-		client:                 client,
-		ordersRepository:       repo,
-		OrdersStartWorkChannel: make(chan model.Order, 1),
-		OrdersUpdateProcessed:  make(chan string, 1),
-		orderInWork:            make(map[string]any),
+	err := d.processRequest(ctx, log, order, 0)
+	assert.NoError(t, err)
+
+	select {
+	case got := <-processedCh:
+		assert.Equal(t, order.OrderId, got)
+	default:
+		t.Fatal("expected processed order id in channel")
 	}
 
-	go d.worker(ctx, log, 1)
-
-	d.OrdersStartWorkChannel <- order
-
-	require.Eventually(t, func() bool {
-		return true
-	}, 150*time.Millisecond, 10*time.Millisecond)
+	repo.AssertExpectations(t)
+	client.AssertExpectations(t)
 }
 
-func TestWorkerSuccessRegisteredNotUpdateOrder(t *testing.T) {
+func TestSuccessProcessRequestRegisteredOrProcessing(t *testing.T) {
+	t.Parallel()
+
+	cases := []struct {
+		name   string
+		status string
+	}{
+		{
+			name:   "Статус регистрации запроса",
+			status: model.ORDER_STATUS_REGISTERED,
+		},
+		{
+			name:   "Статус в процессе",
+			status: model.ORDER_STATUS_PROCESSING,
+		},
+	}
+
+	for _, tt := range cases {
+		t.Run(tt.name, func(t *testing.T) {
+			ctx := context.Background()
+			log := initLogger()
+
+			client := mocks.NewAccrualClient(t)
+			repo := mocks.NewOrdersRepository(t)
+			processedCh := make(chan string, 1)
+
+			d := &Dispatcher{
+				client:                client,
+				ordersRepository:      repo,
+				OrdersUpdateProcessed: processedCh,
+				orderInWork:           map[string]any{},
+			}
+
+			order := &model.Order{
+				OrderId: "12345",
+				Status:  model.ORDER_STATUS_PROCESSING,
+			}
+
+			resp := &model.AccrualResponse{
+				Status: tt.status,
+			}
+
+			client.On("GetOrdersAccrual", order.OrderId).
+				Return(resp, intPtr(http.StatusOK), nil).
+				Once()
+
+			err := d.processRequest(ctx, log, order, 0)
+			assert.NoError(t, err)
+
+			select {
+			case got := <-processedCh:
+				assert.Equal(t, order.OrderId, got)
+			default:
+				t.Fatal("expected processed order id in channel")
+			}
+
+			repo.AssertNotCalled(t, "UpdateOrderStatus", mock.Anything, mock.Anything, mock.Anything, mock.Anything)
+			repo.AssertNotCalled(t, "UpdateOrderStatusSum", mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything)
+			client.AssertExpectations(t)
+		})
+	}
+}
+
+func TestSuccessOrderCompleterCheckRemove(t *testing.T) {
+	t.Parallel()
+
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	log := testDispatherLogger()
-	client := mocks.NewAccuralClient(t)
-	repo := mocks.NewOrdersRepository(t)
-
-	order := model.Order{
-		OrderId: "101",
-		Status:  model.ORDER_STATUS_PROCESSING,
-	}
-
-	client.EXPECT().
-		GetOrdersAccrual(order.OrderId).
-		Return(&model.AccrualResponse{
-			Status: model.ORDER_STATUS_REGISTERED,
-		}, intPtr(http.StatusOK), nil).
-		Once()
-
-	d := Dispatcher{
-		client:                 client,
-		ordersRepository:       repo,
-		OrdersStartWorkChannel: make(chan model.Order, 1),
-		OrdersUpdateProcessed:  make(chan string, 1),
-		orderInWork:            make(map[string]any),
-	}
-
-	go d.worker(ctx, log, 1)
-
-	d.OrdersStartWorkChannel <- order
-
-	require.Eventually(t, func() bool {
-		return true
-	}, 150*time.Millisecond, 10*time.Millisecond)
-}
-
-func TestWorkerSuccessProcessingNotUpdateOrder(t *testing.T) {
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
-
-	log := testDispatherLogger()
-	client := mocks.NewAccuralClient(t)
-	repo := mocks.NewOrdersRepository(t)
-
-	order := model.Order{
-		OrderId: "102",
-		Status:  model.ORDER_STATUS_PROCESSING,
-	}
-
-	client.EXPECT().
-		GetOrdersAccrual(order.OrderId).
-		Return(&model.AccrualResponse{
-			Status: model.ORDER_STATUS_PROCESSING,
-		}, intPtr(http.StatusOK), nil).
-		Once()
-
-	d := Dispatcher{
-		client:                 client,
-		ordersRepository:       repo,
-		OrdersStartWorkChannel: make(chan model.Order, 1),
-		OrdersUpdateProcessed:  make(chan string, 1),
-		orderInWork:            make(map[string]any),
-	}
-
-	go d.worker(ctx, log, 1)
-
-	d.OrdersStartWorkChannel <- order
-
-	require.Eventually(t, func() bool {
-		return true
-	}, 150*time.Millisecond, 10*time.Millisecond)
-}
-
-func TestWorkerErrorStatusTooManyRequests(t *testing.T) {
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
-
-	log := testDispatherLogger()
-	client := mocks.NewAccuralClient(t)
-	repo := mocks.NewOrdersRepository(t)
-
-	order := model.Order{
-		OrderId: "429-order",
-		Status:  model.ORDER_STATUS_PROCESSING,
-	}
-
-	client.EXPECT().
-		GetOrdersAccrual(order.OrderId).
-		Return(nil, intPtr(http.StatusTooManyRequests), nil).
-		Once()
-
-	d := Dispatcher{
-		client:                 client,
-		ordersRepository:       repo,
-		OrdersStartWorkChannel: make(chan model.Order, 1),
-		OrdersUpdateProcessed:  make(chan string, 1),
-		orderInWork:            make(map[string]any),
-	}
-
-	start := time.Now()
-
-	go d.worker(ctx, log, 1)
-
-	d.OrdersStartWorkChannel <- order
-
-	time.Sleep(1100 * time.Millisecond)
-
-	require.GreaterOrEqual(t, time.Since(start), time.Second)
-}
-
-func TestWorkerSuccessRemovesOrderFromWork(t *testing.T) {
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
-
-	log := testDispatherLogger()
-
-	d := Dispatcher{
+	log := initLogger()
+	d := &Dispatcher{
 		OrdersUpdateProcessed: make(chan string, 1),
 		orderInWork: map[string]any{
-			"order-1": struct{}{},
+			"12345": struct{}{},
 		},
 	}
 
 	go d.orderCompleter(ctx, log)
+	d.OrdersUpdateProcessed <- "12345"
 
-	d.OrdersUpdateProcessed <- "order-1"
-
-	require.Eventually(t, func() bool {
+	assert.Eventually(t, func() bool {
 		d.mutex.Lock()
 		defer d.mutex.Unlock()
-		_, exists := d.orderInWork["order-1"]
+
+		_, exists := d.orderInWork["12345"]
 		return !exists
 	}, time.Second, 10*time.Millisecond)
 }
 
-func TestWorkerSuccessSendProcessedNotification(t *testing.T) {
+func TestSuccessStartsWorkers(t *testing.T) {
+	t.Parallel()
+
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	log := testDispatherLogger()
-	client := mocks.NewAccuralClient(t)
+	log := initLogger()
+
+	client := mocks.NewAccrualClient(t)
 	repo := mocks.NewOrdersRepository(t)
+	processedCh := make(chan string, 1)
 
-	order := model.Order{
-		OrderId: "processed-1",
-		Status:  model.ORDER_STATUS_PROCESSING,
+	d := &Dispatcher{
+		client:                client,
+		ordersRepository:      repo,
+		OrdersUpdateProcessed: processedCh,
+		orderInWork:           map[string]any{},
 	}
 
-	client.EXPECT().
-		GetOrdersAccrual(order.OrderId).
-		Return(&model.AccrualResponse{
-			Status: model.ORDER_STATUS_PROCESSING,
-		}, intPtr(http.StatusOK), nil).
-		Once()
+	repo.On("GetNewOrProcessingOrders", mock.Anything, mock.Anything).
+		Return([]model.Order{}, nil).
+		Maybe()
 
-	d := Dispatcher{
-		client:                 client,
-		ordersRepository:       repo,
-		OrdersStartWorkChannel: make(chan model.Order, 1),
-		OrdersUpdateProcessed:  make(chan string, 1),
-		orderInWork:            make(map[string]any),
+	cfg := &config.GophermartConfig{
+		RateLimit:         1,
+		RateLimitDelaySec: 0,
 	}
 
-	go d.worker(ctx, log, 1)
+	d.Run(ctx, log, cfg)
 
-	d.OrdersStartWorkChannel <- order
+	time.Sleep(1200 * time.Millisecond)
+	cancel()
 
-	select {
-	case got := <-d.OrdersUpdateProcessed:
-		require.Equal(t, order.OrderId, got)
-	case <-time.After(300 * time.Millisecond):
-		t.Fatal("expected processed notification, but got none")
-	}
+	repo.AssertCalled(t, "GetNewOrProcessingOrders", mock.Anything, mock.Anything)
 }

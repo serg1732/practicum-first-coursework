@@ -39,7 +39,7 @@ func TestWithdrawsRepoSuccessAddWithdraw(t *testing.T) {
 	gdb, mock, cleanup := initWithdrawTestDB(t)
 	defer cleanup()
 
-	repo := BuildWithdrawsRepo(gdb)
+	repo := BuildRepository[WithdrawsRepoImpl](gdb)
 	logger := newTestLogger()
 	ctx := context.Background()
 
@@ -64,7 +64,7 @@ func TestWithdrawsRepoErrorAddWithdraw(t *testing.T) {
 	gdb, mock, cleanup := initWithdrawTestDB(t)
 	defer cleanup()
 
-	repo := BuildWithdrawsRepo(gdb)
+	repo := BuildRepository[WithdrawsRepoImpl](gdb)
 	logger := newTestLogger()
 	ctx := context.Background()
 
@@ -91,7 +91,7 @@ func TestWithdrawsRepoSuccessGetWithdrawals(t *testing.T) {
 	gdb, mock, cleanup := initWithdrawTestDB(t)
 	defer cleanup()
 
-	repo := BuildWithdrawsRepo(gdb)
+	repo := BuildRepository[WithdrawsRepoImpl](gdb)
 	logger := newTestLogger()
 	ctx := context.Background()
 
@@ -125,7 +125,7 @@ func TestWithdrawsRepoErrorGetWithdrawals(t *testing.T) {
 	gdb, mock, cleanup := initWithdrawTestDB(t)
 	defer cleanup()
 
-	repo := BuildWithdrawsRepo(gdb)
+	repo := BuildRepository[WithdrawsRepoImpl](gdb)
 	logger := newTestLogger()
 	ctx := context.Background()
 

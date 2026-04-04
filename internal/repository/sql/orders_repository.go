@@ -10,13 +10,6 @@ import (
 	"gorm.io/gorm/clause"
 )
 
-// BuildOrdersRepo создание репозитория по работе с заказами
-func BuildOrdersRepo(db *gorm.DB) OrdersRepoImpl {
-	return OrdersRepoImpl{
-		db,
-	}
-}
-
 // OrdersRepoImpl репозиторий заказов
 type OrdersRepoImpl struct {
 	db *gorm.DB

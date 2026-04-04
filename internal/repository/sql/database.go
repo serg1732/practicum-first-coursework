@@ -12,6 +12,10 @@ import (
 	"gorm.io/gorm"
 )
 
+func BuildRepository[T AccountRepoImpl | BalanceRepoImpl | OrdersRepoImpl | WithdrawsRepoImpl](db *gorm.DB) T {
+	return T{db: db}
+}
+
 // BuildConnection создание подключения к БД
 func BuildConnection(log *slog.Logger, config *config.GophermartConfig) (*gorm.DB, error) {
 	if config.DSN == "" {

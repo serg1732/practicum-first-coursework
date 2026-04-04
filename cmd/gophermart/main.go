@@ -11,21 +11,18 @@ import (
 	"time"
 
 	"github.com/go-chi/chi/v5"
+	"github.com/serg1732/practicum-first-coursework/internal/config"
 	"github.com/serg1732/practicum-first-coursework/internal/handler"
-	"github.com/serg1732/practicum-first-coursework/internal/model"
+	"github.com/serg1732/practicum-first-coursework/internal/logger"
 	"github.com/serg1732/practicum-first-coursework/internal/repository/http_client"
 	"github.com/serg1732/practicum-first-coursework/internal/repository/sql"
 	"github.com/serg1732/practicum-first-coursework/internal/service/dispatcher"
-
-	"github.com/serg1732/practicum-first-coursework/internal/config"
-	"github.com/serg1732/practicum-first-coursework/internal/logger"
 )
 
 func main() {
 	log := logger.NewSlogLogger(slog.LevelInfo)
 	log.Debug("Старт модуля")
 	serverConfig, errConfig := config.GetGophermartConfig()
-	log.Debug("Прочитан корнфиг", "config", serverConfig)
 	if errConfig != nil {
 		log.Error("Ошибка парсинга env значений", "error", errConfig)
 	}
@@ -53,15 +50,13 @@ func main() {
 	}
 
 	mux := chi.NewRouter()
-	accountRepo := sql.BuildAccountsRepo(db)
-	orderRepo := sql.BuildOrdersRepo(db)
-	balanceRepo := sql.BuildBalanceRepo(db)
-	withdrawRepo := sql.BuildWithdrawsRepo(db)
-	chUpdate := make(chan model.Order, serverConfig.RateLimit)
+	accountRepo := sql.BuildRepository[sql.AccountRepoImpl](db)
+	orderRepo := sql.BuildRepository[sql.OrdersRepoImpl](db)
+	balanceRepo := sql.BuildRepository[sql.BalanceRepoImpl](db)
+	withdrawRepo := sql.BuildRepository[sql.WithdrawsRepoImpl](db)
 	chProcessed := make(chan string, serverConfig.RateLimit)
-	defer close(chUpdate)
 	defer close(chProcessed)
-	dispatchService := dispatcher.BuildDispatcher(http_client.BuildAccuralClient(serverConfig), &orderRepo, chUpdate, chProcessed)
+	dispatchService := dispatcher.BuildDispatcher(http_client.BuildAccuralClient(serverConfig), &orderRepo, chProcessed)
 	log.Debug("Запуск диспатчера")
 	dispatchService.Run(ctx, log, serverConfig)
 	mux = buildRoute(log, serverConfig, &accountRepo, &orderRepo, &balanceRepo, &withdrawRepo)
@@ -95,7 +90,7 @@ func buildRoute(log *slog.Logger, serverConfig *config.GophermartConfig, account
 	r := chi.NewRouter()
 	authHandler := handler.BuildAuthorizationHandler(accountRepository)
 	ordersHandler := handler.BuildOrdersHandler(orderRepository)
-	withdrawHandler := handler.BuildWithdrawHandler(balanceRepo, withdrawRepository, orderRepository)
+	withdrawHandler := handler.BuildWithdrawHandler(balanceRepo, withdrawRepository)
 
 	r.Route("/api/user", func(r chi.Router) {
 		r.Post("/register", authHandler.Register(log, serverConfig))

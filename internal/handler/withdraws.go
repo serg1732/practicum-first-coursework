@@ -19,24 +19,28 @@ type WithdrawsRepository interface {
 	GetWithdrawals(ctx context.Context, log *slog.Logger, accountId int64) ([]*model.Withdrawals, error)
 }
 
-func BuildWithdrawHandler(balanceRepo BalanceRepository, repo WithdrawsRepository, orders OrdersRepository) WithdrawsHandlerImpl {
+func BuildWithdrawHandler(balanceRepo BalanceRepository, repo WithdrawsRepository) WithdrawsHandlerImpl {
 	return WithdrawsHandlerImpl{
 		balanceRepo:   balanceRepo,
 		withdrawsRepo: repo,
-		ordersRepo:    orders,
 	}
 }
 
 type WithdrawsHandlerImpl struct {
 	balanceRepo   BalanceRepository
 	withdrawsRepo WithdrawsRepository
-	ordersRepo    OrdersRepository
 }
 
 // GetAllWithdraw handler получения всех списаний
 func (wh WithdrawsHandlerImpl) GetAllWithdraw(log *slog.Logger) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		var accountId = r.Context().Value("account_id").(int64)
+		var accountId, isConverted = r.Context().Value(accountIDKey).(int64)
+		if !isConverted {
+			log.Error("Не удалось получить данные об аккаунте")
+			http.Error(w, "некорректные данные идентификатора аккаунта", http.StatusInternalServerError)
+			return
+		}
+
 		logsWithdraw, err := wh.withdrawsRepo.GetWithdrawals(r.Context(), log, accountId)
 		if err != nil {
 			log.Error("Ошибка при получении списаний", "error", err)
@@ -56,7 +60,13 @@ func (wh WithdrawsHandlerImpl) GetAllWithdraw(log *slog.Logger) http.HandlerFunc
 // BalanceRequest handler получения баланса пользователя
 func (wh *WithdrawsHandlerImpl) BalanceRequest(log *slog.Logger) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		var accountId = r.Context().Value("account_id").(int64)
+		var accountId, isConverted = r.Context().Value(accountIDKey).(int64)
+		if !isConverted {
+			log.Error("Не удалось получить данные об аккаунте")
+			http.Error(w, "некорректные данные идентификатора аккаунта", http.StatusInternalServerError)
+			return
+		}
+
 		w.Header().Set("Content-Type", "application/json")
 		balance, err := wh.balanceRepo.GetBalance(r.Context(), log, accountId)
 		if err != nil {
@@ -75,7 +85,13 @@ func (wh *WithdrawsHandlerImpl) BalanceRequest(log *slog.Logger) http.HandlerFun
 // WithdrawRequest handler запроса на списание баллов
 func (wh *WithdrawsHandlerImpl) WithdrawRequest(log *slog.Logger) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		var accountId = r.Context().Value("account_id").(int64)
+		var accountId, isConverted = r.Context().Value(accountIDKey).(int64)
+		if !isConverted {
+			log.Error("Не удалось получить данные об аккаунте")
+			http.Error(w, "некорректные данные идентификатора аккаунта", http.StatusInternalServerError)
+			return
+		}
+
 		decoder := json.NewDecoder(r.Body)
 		defer r.Body.Close()
 		var req model.WithdrawRequest

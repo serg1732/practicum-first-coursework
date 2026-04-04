@@ -15,10 +15,7 @@ import (
 
 type OrdersRepository interface {
 	AddNewOrder(ctx context.Context, log *slog.Logger, accountId int64, orderId string) (bool, error)
-	FindOrderById(ctx context.Context, orderId string) (*model.Order, error)
 	GetAllOrders(ctx context.Context, log *slog.Logger, accountId int64) ([]model.Order, error)
-	UpdateOrderStatus(ctx context.Context, log *slog.Logger, orderId string, st string) error
-	UpdateOrderStatusSum(ctx context.Context, log *slog.Logger, orderId string, st string, accural float64) error
 }
 
 func BuildOrdersHandler(repo OrdersRepository) OrdersHandlerImpl {
@@ -34,7 +31,13 @@ type OrdersHandlerImpl struct {
 // GetAllOrders handler получение всех заказов пользователя
 func (o *OrdersHandlerImpl) GetAllOrders(log *slog.Logger) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		var accountId = r.Context().Value("account_id").(int64)
+		var accountId, isConverted = r.Context().Value(accountIDKey).(int64)
+		if !isConverted {
+			log.Error("Не удалось получить данные об аккаунте")
+			http.Error(w, "некорректные данные идентификатора аккаунта", http.StatusInternalServerError)
+			return
+		}
+
 		orders, err := o.ordersRepo.GetAllOrders(r.Context(), log, accountId)
 		if err != nil {
 			log.Error("ошибка при получении заказов")
@@ -52,7 +55,12 @@ func (o *OrdersHandlerImpl) GetAllOrders(log *slog.Logger) http.HandlerFunc {
 // AddNewOrder handler добавление заказа пользователя
 func (o *OrdersHandlerImpl) AddNewOrder(log *slog.Logger) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		var accountId = r.Context().Value("account_id").(int64)
+		var accountId, isConverted = r.Context().Value(accountIDKey).(int64)
+		if !isConverted {
+			log.Error("Не удалось получить данные об аккаунте")
+			http.Error(w, "некорректные данные идентификатора аккаунта", http.StatusInternalServerError)
+			return
+		}
 		body, err := io.ReadAll(r.Body)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusBadRequest)

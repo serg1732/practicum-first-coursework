@@ -9,13 +9,6 @@ import (
 	"gorm.io/gorm/clause"
 )
 
-// BuildBalanceRepo создание репозитория BALANCE
-func BuildBalanceRepo(db *gorm.DB) BalanceRepoImpl {
-	return BalanceRepoImpl{
-		db,
-	}
-}
-
 // BalanceRepoImpl репозиторий по работе с балансом
 type BalanceRepoImpl struct {
 	db *gorm.DB

@@ -9,13 +9,6 @@ import (
 	"gorm.io/gorm"
 )
 
-// BuildWithdrawsRepo создание репозитория списаний баллов
-func BuildWithdrawsRepo(db *gorm.DB) WithdrawsRepoImpl {
-	return WithdrawsRepoImpl{
-		db,
-	}
-}
-
 // WithdrawsRepoImpl репозиторий списаний баллов
 type WithdrawsRepoImpl struct {
 	db *gorm.DB

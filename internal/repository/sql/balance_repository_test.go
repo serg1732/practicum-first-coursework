@@ -31,7 +31,7 @@ func initBalanceTestLogger() *slog.Logger {
 
 func TestBalanceRepoSuccessGetBalance(t *testing.T) {
 	db, mock := newBalanceTestDB(t)
-	repo := BuildBalanceRepo(db)
+	repo := BuildRepository[BalanceRepoImpl](db)
 	logger := initBalanceTestLogger()
 
 	var accountID int64 = 10
@@ -54,7 +54,7 @@ func TestBalanceRepoSuccessGetBalance(t *testing.T) {
 
 func TestBalanceRepoErrorGetBalance(t *testing.T) {
 	db, mock := newBalanceTestDB(t)
-	repo := BuildBalanceRepo(db)
+	repo := BuildRepository[BalanceRepoImpl](db)
 	logger := initBalanceTestLogger()
 
 	var accountID int64 = 10
@@ -71,7 +71,7 @@ func TestBalanceRepoErrorGetBalance(t *testing.T) {
 
 func TestBalanceRepoErrorGetForUpdateSelect(t *testing.T) {
 	db, mock := newBalanceTestDB(t)
-	repo := BuildBalanceRepo(db)
+	repo := BuildRepository[BalanceRepoImpl](db)
 	logger := initBalanceTestLogger()
 
 	var accountID int64 = 10
@@ -91,7 +91,7 @@ func TestBalanceRepoErrorGetForUpdateSelect(t *testing.T) {
 
 func TestBalanceRepoSuccessGetForUpdateNotUpdate(t *testing.T) {
 	db, mock := newBalanceTestDB(t)
-	repo := BuildBalanceRepo(db)
+	repo := BuildRepository[BalanceRepoImpl](db)
 	logger := initBalanceTestLogger()
 
 	var accountID int64 = 10
@@ -114,7 +114,7 @@ func TestBalanceRepoSuccessGetForUpdateNotUpdate(t *testing.T) {
 
 func TestBalanceRepoSuccessGetForUpdate(t *testing.T) {
 	db, mock := newBalanceTestDB(t)
-	repo := BuildBalanceRepo(db)
+	repo := BuildRepository[BalanceRepoImpl](db)
 	logger := initBalanceTestLogger()
 
 	var accountID int64 = 10
@@ -142,7 +142,7 @@ func TestBalanceRepoSuccessGetForUpdate(t *testing.T) {
 
 func TestBalanceRepoErrorGetForUpdateSave(t *testing.T) {
 	db, mock := newBalanceTestDB(t)
-	repo := BuildBalanceRepo(db)
+	repo := BuildRepository[BalanceRepoImpl](db)
 	logger := initBalanceTestLogger()
 
 	var accountID int64 = 10

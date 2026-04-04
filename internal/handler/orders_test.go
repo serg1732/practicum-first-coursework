@@ -1,18 +1,19 @@
-package handler_test
+package handler
 
 import (
 	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io"
 	"log/slog"
 	"net/http"
 	"net/http/httptest"
 	"testing"
 
+	"github.com/ShiraazMoollatjie/goluhn"
 	"github.com/jackc/pgx/v5/pgconn"
-	"github.com/serg1732/practicum-first-coursework/internal/handler"
 	handlerMocks "github.com/serg1732/practicum-first-coursework/internal/handler/mocks"
 	"github.com/serg1732/practicum-first-coursework/internal/model"
 	"github.com/stretchr/testify/assert"
@@ -24,14 +25,14 @@ func ordersTestLogger() *slog.Logger {
 }
 
 func withAccountID(req *http.Request, accountID int64) *http.Request {
-	ctx := context.WithValue(req.Context(), "account_id", accountID)
+	ctx := context.WithValue(req.Context(), accountIDKey, accountID)
 	return req.WithContext(ctx)
 }
 
 func TestOrdersHandlerAddNewOrders(t *testing.T) {
 	t.Run("OrderId не в формате Луна", func(t *testing.T) {
 		repo := handlerMocks.NewOrdersRepository(t)
-		h := handler.BuildOrdersHandler(repo)
+		h := BuildOrdersHandler(repo)
 
 		req := httptest.NewRequest(http.MethodPost, "/api/user/orders", bytes.NewBufferString("12345"))
 		req = withAccountID(req, 1)
@@ -43,7 +44,7 @@ func TestOrdersHandlerAddNewOrders(t *testing.T) {
 
 	t.Run("Повторяющийся order_id для другого аккаунта", func(t *testing.T) {
 		repo := handlerMocks.NewOrdersRepository(t)
-		h := handler.BuildOrdersHandler(repo)
+		h := BuildOrdersHandler(repo)
 
 		var accountId int64 = 10
 		repo.
@@ -63,7 +64,7 @@ func TestOrdersHandlerAddNewOrders(t *testing.T) {
 
 	t.Run("Ошибка в БД при добавлении", func(t *testing.T) {
 		repo := handlerMocks.NewOrdersRepository(t)
-		h := handler.BuildOrdersHandler(repo)
+		h := BuildOrdersHandler(repo)
 		var accountId int64 = 10
 		repo.
 			On("AddNewOrder", mock.Anything, mock.Anything, accountId, "79927398713").
@@ -80,7 +81,7 @@ func TestOrdersHandlerAddNewOrders(t *testing.T) {
 
 	t.Run("Загружен order_id пользователем повторно", func(t *testing.T) {
 		repo := handlerMocks.NewOrdersRepository(t)
-		h := handler.BuildOrdersHandler(repo)
+		h := BuildOrdersHandler(repo)
 		var accountId int64 = 10
 		repo.
 			On("AddNewOrder", mock.Anything, mock.Anything, accountId, "79927398713").
@@ -97,7 +98,7 @@ func TestOrdersHandlerAddNewOrders(t *testing.T) {
 
 	t.Run("Успешное добавление нового заказа", func(t *testing.T) {
 		repo := handlerMocks.NewOrdersRepository(t)
-		h := handler.BuildOrdersHandler(repo)
+		h := BuildOrdersHandler(repo)
 		var accountId int64 = 10
 		repo.
 			On("AddNewOrder", mock.Anything, mock.Anything, accountId, "79927398713").
@@ -116,7 +117,7 @@ func TestOrdersHandlerAddNewOrders(t *testing.T) {
 func TestOrdersHandlerGetAllOrders(t *testing.T) {
 	t.Run("Успешное получение списка заказов", func(t *testing.T) {
 		repo := handlerMocks.NewOrdersRepository(t)
-		h := handler.BuildOrdersHandler(repo)
+		h := BuildOrdersHandler(repo)
 		accrualProcessed := 100.5
 		accrualNew := 0.0
 		expected := []model.Order{
@@ -146,7 +147,7 @@ func TestOrdersHandlerGetAllOrders(t *testing.T) {
 
 	t.Run("Ошибка в БД", func(t *testing.T) {
 		repo := handlerMocks.NewOrdersRepository(t)
-		h := handler.BuildOrdersHandler(repo)
+		h := BuildOrdersHandler(repo)
 		var accountId int64 = 50
 		repo.
 			On("GetAllOrders", mock.Anything, mock.Anything, accountId).

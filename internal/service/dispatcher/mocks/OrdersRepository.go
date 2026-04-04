@@ -17,14 +17,6 @@ type OrdersRepository struct {
 	mock.Mock
 }
 
-type OrdersRepository_Expecter struct {
-	mock *mock.Mock
-}
-
-func (_m *OrdersRepository) EXPECT() *OrdersRepository_Expecter {
-	return &OrdersRepository_Expecter{mock: &_m.Mock}
-}
-
 // GetNewOrProcessingOrders provides a mock function with given fields: ctx, log
 func (_m *OrdersRepository) GetNewOrProcessingOrders(ctx context.Context, log *slog.Logger) ([]model.Order, error) {
 	ret := _m.Called(ctx, log)
@@ -55,35 +47,6 @@ func (_m *OrdersRepository) GetNewOrProcessingOrders(ctx context.Context, log *s
 	return r0, r1
 }
 
-// OrdersRepository_GetNewOrProcessingOrders_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'GetNewOrProcessingOrders'
-type OrdersRepository_GetNewOrProcessingOrders_Call struct {
-	*mock.Call
-}
-
-// GetNewOrProcessingOrders is a helper method to define mock.On call
-//   - ctx context.Context
-//   - log *slog.Logger
-func (_e *OrdersRepository_Expecter) GetNewOrProcessingOrders(ctx interface{}, log interface{}) *OrdersRepository_GetNewOrProcessingOrders_Call {
-	return &OrdersRepository_GetNewOrProcessingOrders_Call{Call: _e.mock.On("GetNewOrProcessingOrders", ctx, log)}
-}
-
-func (_c *OrdersRepository_GetNewOrProcessingOrders_Call) Run(run func(ctx context.Context, log *slog.Logger)) *OrdersRepository_GetNewOrProcessingOrders_Call {
-	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(context.Context), args[1].(*slog.Logger))
-	})
-	return _c
-}
-
-func (_c *OrdersRepository_GetNewOrProcessingOrders_Call) Return(_a0 []model.Order, _a1 error) *OrdersRepository_GetNewOrProcessingOrders_Call {
-	_c.Call.Return(_a0, _a1)
-	return _c
-}
-
-func (_c *OrdersRepository_GetNewOrProcessingOrders_Call) RunAndReturn(run func(context.Context, *slog.Logger) ([]model.Order, error)) *OrdersRepository_GetNewOrProcessingOrders_Call {
-	_c.Call.Return(run)
-	return _c
-}
-
 // UpdateOrderStatus provides a mock function with given fields: ctx, log, orderId, st
 func (_m *OrdersRepository) UpdateOrderStatus(ctx context.Context, log *slog.Logger, orderId string, st string) error {
 	ret := _m.Called(ctx, log, orderId, st)
@@ -102,37 +65,6 @@ func (_m *OrdersRepository) UpdateOrderStatus(ctx context.Context, log *slog.Log
 	return r0
 }
 
-// OrdersRepository_UpdateOrderStatus_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'UpdateOrderStatus'
-type OrdersRepository_UpdateOrderStatus_Call struct {
-	*mock.Call
-}
-
-// UpdateOrderStatus is a helper method to define mock.On call
-//   - ctx context.Context
-//   - log *slog.Logger
-//   - orderId string
-//   - st string
-func (_e *OrdersRepository_Expecter) UpdateOrderStatus(ctx interface{}, log interface{}, orderId interface{}, st interface{}) *OrdersRepository_UpdateOrderStatus_Call {
-	return &OrdersRepository_UpdateOrderStatus_Call{Call: _e.mock.On("UpdateOrderStatus", ctx, log, orderId, st)}
-}
-
-func (_c *OrdersRepository_UpdateOrderStatus_Call) Run(run func(ctx context.Context, log *slog.Logger, orderId string, st string)) *OrdersRepository_UpdateOrderStatus_Call {
-	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(context.Context), args[1].(*slog.Logger), args[2].(string), args[3].(string))
-	})
-	return _c
-}
-
-func (_c *OrdersRepository_UpdateOrderStatus_Call) Return(_a0 error) *OrdersRepository_UpdateOrderStatus_Call {
-	_c.Call.Return(_a0)
-	return _c
-}
-
-func (_c *OrdersRepository_UpdateOrderStatus_Call) RunAndReturn(run func(context.Context, *slog.Logger, string, string) error) *OrdersRepository_UpdateOrderStatus_Call {
-	_c.Call.Return(run)
-	return _c
-}
-
 // UpdateOrderStatusSum provides a mock function with given fields: ctx, log, orderId, st, accural
 func (_m *OrdersRepository) UpdateOrderStatusSum(ctx context.Context, log *slog.Logger, orderId string, st string, accural float64) error {
 	ret := _m.Called(ctx, log, orderId, st, accural)
@@ -149,38 +81,6 @@ func (_m *OrdersRepository) UpdateOrderStatusSum(ctx context.Context, log *slog.
 	}
 
 	return r0
-}
-
-// OrdersRepository_UpdateOrderStatusSum_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'UpdateOrderStatusSum'
-type OrdersRepository_UpdateOrderStatusSum_Call struct {
-	*mock.Call
-}
-
-// UpdateOrderStatusSum is a helper method to define mock.On call
-//   - ctx context.Context
-//   - log *slog.Logger
-//   - orderId string
-//   - st string
-//   - accural float64
-func (_e *OrdersRepository_Expecter) UpdateOrderStatusSum(ctx interface{}, log interface{}, orderId interface{}, st interface{}, accural interface{}) *OrdersRepository_UpdateOrderStatusSum_Call {
-	return &OrdersRepository_UpdateOrderStatusSum_Call{Call: _e.mock.On("UpdateOrderStatusSum", ctx, log, orderId, st, accural)}
-}
-
-func (_c *OrdersRepository_UpdateOrderStatusSum_Call) Run(run func(ctx context.Context, log *slog.Logger, orderId string, st string, accural float64)) *OrdersRepository_UpdateOrderStatusSum_Call {
-	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(context.Context), args[1].(*slog.Logger), args[2].(string), args[3].(string), args[4].(float64))
-	})
-	return _c
-}
-
-func (_c *OrdersRepository_UpdateOrderStatusSum_Call) Return(_a0 error) *OrdersRepository_UpdateOrderStatusSum_Call {
-	_c.Call.Return(_a0)
-	return _c
-}
-
-func (_c *OrdersRepository_UpdateOrderStatusSum_Call) RunAndReturn(run func(context.Context, *slog.Logger, string, string, float64) error) *OrdersRepository_UpdateOrderStatusSum_Call {
-	_c.Call.Return(run)
-	return _c
 }
 
 // NewOrdersRepository creates a new instance of OrdersRepository. It also registers a testing interface on the mock and a cleanup function to assert the mocks expectations.

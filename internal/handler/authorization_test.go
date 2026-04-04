@@ -254,13 +254,12 @@ func TestSuccessAuthorizationHandlerRegisterRequest(t *testing.T) {
 
 	body := `{"login":"testuser","password":"password"}`
 
-	ctxKey := struct{}{}
 	ctxVal := "test-value"
 
 	repo.
 		On("Create",
 			mock.MatchedBy(func(ctx context.Context) bool {
-				return ctx.Value(ctxKey) == ctxVal
+				return ctx.Value(accountIDKey) == ctxVal
 			}),
 			mock.Anything,
 			mock.AnythingOfType("*model.Accounts"),
@@ -269,7 +268,7 @@ func TestSuccessAuthorizationHandlerRegisterRequest(t *testing.T) {
 		Once()
 
 	req := httptest.NewRequest(http.MethodPost, "/api/user/register", bytes.NewBufferString(body))
-	req = req.WithContext(context.WithValue(req.Context(), ctxKey, ctxVal))
+	req = req.WithContext(context.WithValue(req.Context(), accountIDKey, ctxVal))
 	rec := httptest.NewRecorder()
 
 	handler := h.Register(log, cfg)

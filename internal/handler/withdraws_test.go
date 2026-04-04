@@ -24,16 +24,15 @@ func testWithdrawsLogger() *slog.Logger {
 
 func requestWithAccountID(method, target string, body io.Reader, accountID int64) *http.Request {
 	req := httptest.NewRequest(method, target, body)
-	ctx := context.WithValue(req.Context(), "account_id", accountID)
+	ctx := context.WithValue(req.Context(), accountIDKey, accountID)
 	return req.WithContext(ctx)
 }
 
 func TestSuccessGetAllWithdraw(t *testing.T) {
 	balanceRepo := mocks.NewBalanceRepository(t)
 	withdrawsRepo := mocks.NewWithdrawsRepository(t)
-	ordersRepo := mocks.NewOrdersRepository(t)
 
-	h := BuildWithdrawHandler(balanceRepo, withdrawsRepo, ordersRepo)
+	h := BuildWithdrawHandler(balanceRepo, withdrawsRepo)
 
 	expected := []*model.Withdrawals{}
 	var accountID int64 = 42
@@ -53,9 +52,8 @@ func TestSuccessGetAllWithdraw(t *testing.T) {
 func TestErrorGetAllWithdrawRepositoryError(t *testing.T) {
 	balanceRepo := mocks.NewBalanceRepository(t)
 	withdrawsRepo := mocks.NewWithdrawsRepository(t)
-	ordersRepo := mocks.NewOrdersRepository(t)
 
-	h := BuildWithdrawHandler(balanceRepo, withdrawsRepo, ordersRepo)
+	h := BuildWithdrawHandler(balanceRepo, withdrawsRepo)
 	var accountID int64 = 42
 	withdrawsRepo.
 		On("GetWithdrawals", mock.Anything, mock.Anything, accountID).
@@ -72,9 +70,8 @@ func TestErrorGetAllWithdrawRepositoryError(t *testing.T) {
 func TestSuccessBalanceRequest(t *testing.T) {
 	balanceRepo := mocks.NewBalanceRepository(t)
 	withdrawsRepo := mocks.NewWithdrawsRepository(t)
-	ordersRepo := mocks.NewOrdersRepository(t)
 
-	h := BuildWithdrawHandler(balanceRepo, withdrawsRepo, ordersRepo)
+	h := BuildWithdrawHandler(balanceRepo, withdrawsRepo)
 	var accountID int64 = 101
 	balanceRepo.
 		On("GetBalance", mock.Anything, mock.Anything, accountID).
@@ -93,9 +90,8 @@ func TestSuccessBalanceRequest(t *testing.T) {
 func TestErrorBalanceRequestRepositoryError(t *testing.T) {
 	balanceRepo := mocks.NewBalanceRepository(t)
 	withdrawsRepo := mocks.NewWithdrawsRepository(t)
-	ordersRepo := mocks.NewOrdersRepository(t)
 
-	h := BuildWithdrawHandler(balanceRepo, withdrawsRepo, ordersRepo)
+	h := BuildWithdrawHandler(balanceRepo, withdrawsRepo)
 	var accountID int64 = 102
 	balanceRepo.
 		On("GetBalance", mock.Anything, mock.Anything, accountID).
@@ -112,9 +108,8 @@ func TestErrorBalanceRequestRepositoryError(t *testing.T) {
 func TestErrorWithdrawRequestInvalidJSON(t *testing.T) {
 	balanceRepo := mocks.NewBalanceRepository(t)
 	withdrawsRepo := mocks.NewWithdrawsRepository(t)
-	ordersRepo := mocks.NewOrdersRepository(t)
 
-	h := BuildWithdrawHandler(balanceRepo, withdrawsRepo, ordersRepo)
+	h := BuildWithdrawHandler(balanceRepo, withdrawsRepo)
 
 	req := requestWithAccountID(
 		http.MethodPost,
@@ -131,9 +126,8 @@ func TestErrorWithdrawRequestInvalidJSON(t *testing.T) {
 func TestErrorWithdrawRequestGetForUpdateError(t *testing.T) {
 	balanceRepo := mocks.NewBalanceRepository(t)
 	withdrawsRepo := mocks.NewWithdrawsRepository(t)
-	ordersRepo := mocks.NewOrdersRepository(t)
 
-	h := BuildWithdrawHandler(balanceRepo, withdrawsRepo, ordersRepo)
+	h := BuildWithdrawHandler(balanceRepo, withdrawsRepo)
 	var accountID int64 = 105
 	balanceRepo.
 		On("GetForUpdate", mock.Anything, mock.Anything, accountID, 10.5).
@@ -155,9 +149,8 @@ func TestErrorWithdrawRequestGetForUpdateError(t *testing.T) {
 func TestErrorWithdrawRequestNotEnoughMoney(t *testing.T) {
 	balanceRepo := mocks.NewBalanceRepository(t)
 	withdrawsRepo := mocks.NewWithdrawsRepository(t)
-	ordersRepo := mocks.NewOrdersRepository(t)
 
-	h := BuildWithdrawHandler(balanceRepo, withdrawsRepo, ordersRepo)
+	h := BuildWithdrawHandler(balanceRepo, withdrawsRepo)
 	var accountID int64 = 105
 	balanceRepo.
 		On("GetForUpdate", mock.Anything, mock.Anything, accountID, 999999.0).
@@ -181,9 +174,8 @@ func TestErrorWithdrawRequestNotEnoughMoney(t *testing.T) {
 func TestErrorWithdrawRequestAddWithdrawError(t *testing.T) {
 	balanceRepo := mocks.NewBalanceRepository(t)
 	withdrawsRepo := mocks.NewWithdrawsRepository(t)
-	ordersRepo := mocks.NewOrdersRepository(t)
 
-	h := BuildWithdrawHandler(balanceRepo, withdrawsRepo, ordersRepo)
+	h := BuildWithdrawHandler(balanceRepo, withdrawsRepo)
 	var accountID = rand.Int64()
 	balanceRepo.
 		On("GetForUpdate", mock.Anything, mock.Anything, accountID, 10.5).
@@ -218,9 +210,8 @@ func TestErrorWithdrawRequestAddWithdrawError(t *testing.T) {
 func TestSuccessWithdrawRequest(t *testing.T) {
 	balanceRepo := mocks.NewBalanceRepository(t)
 	withdrawsRepo := mocks.NewWithdrawsRepository(t)
-	ordersRepo := mocks.NewOrdersRepository(t)
 
-	h := BuildWithdrawHandler(balanceRepo, withdrawsRepo, ordersRepo)
+	h := BuildWithdrawHandler(balanceRepo, withdrawsRepo)
 	var accountID = rand.Int64()
 	balanceRepo.
 		On("GetForUpdate", mock.Anything, mock.Anything, accountID, 10.5).
