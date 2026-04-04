@@ -179,9 +179,9 @@ func TestAccountRepoSuccessLogin(t *testing.T) {
 		Login:    "user",
 		Password: "password",
 	}
-	var expectedAccountId int64 = 10
+	var expectedAccountID int64 = 10
 	rows := sqlmock.NewRows([]string{"id", "login", "password"}).
-		AddRow(expectedAccountId, "user", string(hashed))
+		AddRow(expectedAccountID, "user", string(hashed))
 	mock.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "accounts" WHERE login = $1 ORDER BY "accounts"."id" LIMIT $2`)).
 		WithArgs("user", 1).
 		WillReturnRows(rows)
@@ -189,7 +189,7 @@ func TestAccountRepoSuccessLogin(t *testing.T) {
 	id, err := repo.Login(ctx, logger, auth)
 	assert.Nil(t, err, "Ошибка при авторизации")
 	assert.NotNil(t, id, "id аккаунта не может быть nil")
-	assert.Equal(t, expectedAccountId, *id, "другой идентификатор аккаунта")
+	assert.Equal(t, expectedAccountID, *id, "другой идентификатор аккаунта")
 	assert.NoError(t, mock.ExpectationsWereMet())
 }
 

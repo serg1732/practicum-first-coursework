@@ -1,4 +1,4 @@
-package http_client
+package httpclient
 
 import (
 	"encoding/json"
@@ -24,8 +24,8 @@ type AccuralClientImpl struct {
 }
 
 // GetOrdersAccrual запрос на получение баллов за заказ
-func (ac *AccuralClientImpl) GetOrdersAccrual(orderId string) (*model.AccrualResponse, *int, error) {
-	req, err := http.NewRequest("GET", fmt.Sprintf("%s/api/orders/%s", ac.url, orderId), nil)
+func (ac *AccuralClientImpl) GetOrdersAccrual(orderID string) (*model.AccrualResponse, *int, error) {
+	req, err := http.NewRequest("GET", fmt.Sprintf("%s/api/orders/%s", ac.url, orderID), nil)
 	if err != nil {
 		return nil, nil, err
 	}

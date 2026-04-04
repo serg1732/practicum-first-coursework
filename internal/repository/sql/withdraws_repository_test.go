@@ -116,8 +116,8 @@ func TestWithdrawsRepoSuccessGetWithdrawals(t *testing.T) {
 	withdraws, err := repo.GetWithdrawals(ctx, logger, expectedAccID)
 	assert.NoError(t, err)
 	assert.Equal(t, 2, len(withdraws))
-	assert.Equal(t, orderOne, withdraws[0].OrderId)
-	assert.Equal(t, orderTwo, withdraws[1].OrderId)
+	assert.Equal(t, orderOne, withdraws[0].OrderID)
+	assert.Equal(t, orderTwo, withdraws[1].OrderID)
 	assert.NoError(t, mock.ExpectationsWereMet())
 }
 

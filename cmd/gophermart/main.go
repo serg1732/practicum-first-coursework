@@ -14,7 +14,7 @@ import (
 	"github.com/serg1732/practicum-first-coursework/internal/config"
 	"github.com/serg1732/practicum-first-coursework/internal/handler"
 	"github.com/serg1732/practicum-first-coursework/internal/logger"
-	"github.com/serg1732/practicum-first-coursework/internal/repository/http_client"
+	"github.com/serg1732/practicum-first-coursework/internal/repository/httpclient"
 	"github.com/serg1732/practicum-first-coursework/internal/repository/sql"
 	"github.com/serg1732/practicum-first-coursework/internal/service/dispatcher"
 )
@@ -49,17 +49,17 @@ func main() {
 		os.Exit(1)
 	}
 
-	mux := chi.NewRouter()
 	accountRepo := sql.BuildRepository[sql.AccountRepoImpl](db)
 	orderRepo := sql.BuildRepository[sql.OrdersRepoImpl](db)
 	balanceRepo := sql.BuildRepository[sql.BalanceRepoImpl](db)
 	withdrawRepo := sql.BuildRepository[sql.WithdrawsRepoImpl](db)
 	chProcessed := make(chan string, serverConfig.RateLimit)
 	defer close(chProcessed)
-	dispatchService := dispatcher.BuildDispatcher(http_client.BuildAccuralClient(serverConfig), &orderRepo, chProcessed)
+	dispatchService := dispatcher.BuildDispatcher(httpclient.BuildAccuralClient(serverConfig), &orderRepo, chProcessed)
 	log.Debug("Запуск диспатчера")
 	dispatchService.Run(ctx, log, serverConfig)
-	mux = buildRoute(log, serverConfig, &accountRepo, &orderRepo, &balanceRepo, &withdrawRepo)
+
+	mux := buildRoute(log, serverConfig, &accountRepo, &orderRepo, &balanceRepo, &withdrawRepo)
 
 	log.Info("Запуск http сервера", "address", serverConfig.RunAddr)
 	srv := &http.Server{

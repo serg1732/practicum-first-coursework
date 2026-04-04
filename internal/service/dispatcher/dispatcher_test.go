@@ -58,16 +58,16 @@ func TestSuccessProcessRequestNewOrder(t *testing.T) {
 	}
 
 	order := &model.Order{
-		OrderId: "12345",
-		Status:  model.ORDER_STATUS_NEW,
+		OrderID: "12345",
+		Status:  model.OrderStatusNew,
 	}
 	resp := &model.AccrualResponse{
-		Status: model.ORDER_STATUS_REGISTERED,
+		Status: model.OrderStatusRegistered,
 	}
-	repo.On("UpdateOrderStatus", mock.Anything, mock.Anything, order.OrderId, model.ORDER_STATUS_PROCESSING).
+	repo.On("UpdateOrderStatus", mock.Anything, mock.Anything, order.OrderID, model.OrderStatusProcessing).
 		Return(nil).
 		Once()
-	client.On("GetOrdersAccrual", order.OrderId).
+	client.On("GetOrdersAccrual", order.OrderID).
 		Return(resp, intPtr(http.StatusOK), nil).
 		Once()
 
@@ -76,7 +76,7 @@ func TestSuccessProcessRequestNewOrder(t *testing.T) {
 
 	select {
 	case got := <-processedCh:
-		assert.Equal(t, order.OrderId, got)
+		assert.Equal(t, order.OrderID, got)
 	default:
 		t.Fatal("expected processed order id in channel")
 	}
@@ -103,13 +103,13 @@ func TestErrorProcessRequestOrderMarkedInvalid(t *testing.T) {
 	}
 
 	order := &model.Order{
-		OrderId: "12345",
-		Status:  model.ORDER_STATUS_PROCESSING,
+		OrderID: "12345",
+		Status:  model.OrderStatusProcessing,
 	}
-	client.On("GetOrdersAccrual", order.OrderId).
+	client.On("GetOrdersAccrual", order.OrderID).
 		Return(nil, intPtr(http.StatusInternalServerError), assert.AnError).
 		Once()
-	repo.On("UpdateOrderStatus", mock.Anything, mock.Anything, order.OrderId, model.ORDER_STATUS_INVALID).
+	repo.On("UpdateOrderStatus", mock.Anything, mock.Anything, order.OrderID, model.OrderStatusInvalid).
 		Return(nil).
 		Once()
 
@@ -118,7 +118,7 @@ func TestErrorProcessRequestOrderMarkedInvalid(t *testing.T) {
 
 	select {
 	case got := <-processedCh:
-		assert.Equal(t, order.OrderId, got)
+		assert.Equal(t, order.OrderID, got)
 	default:
 		t.Fatal("expected processed order id in channel")
 	}
@@ -145,11 +145,11 @@ func TestSuccessPocessRequestStatusTooManyRequests(t *testing.T) {
 	}
 
 	order := &model.Order{
-		OrderId: "12345",
-		Status:  model.ORDER_STATUS_PROCESSING,
+		OrderID: "12345",
+		Status:  model.OrderStatusProcessing,
 	}
 
-	client.On("GetOrdersAccrual", order.OrderId).
+	client.On("GetOrdersAccrual", order.OrderID).
 		Return(nil, intPtr(http.StatusTooManyRequests), nil).
 		Once()
 
@@ -162,7 +162,7 @@ func TestSuccessPocessRequestStatusTooManyRequests(t *testing.T) {
 
 	select {
 	case got := <-processedCh:
-		assert.Equal(t, order.OrderId, got)
+		assert.Equal(t, order.OrderID, got)
 	default:
 		t.Fatal("expected processed order id in channel")
 	}
@@ -190,21 +190,21 @@ func TestSuccessProcessRequestStatusWithAccrual(t *testing.T) {
 	}
 
 	order := &model.Order{
-		OrderId: "12345",
-		Status:  model.ORDER_STATUS_PROCESSING,
+		OrderID: "12345",
+		Status:  model.OrderStatusProcessing,
 	}
 
 	accrual := 150.75
 	resp := &model.AccrualResponse{
-		Status:  model.ORDER_STATUS_PROCESSED,
+		Status:  model.OrderStatusProcessed,
 		Accrual: float64Ptr(accrual),
 	}
 
-	client.On("GetOrdersAccrual", order.OrderId).
+	client.On("GetOrdersAccrual", order.OrderID).
 		Return(resp, intPtr(http.StatusOK), nil).
 		Once()
 
-	repo.On("UpdateOrderStatusSum", mock.Anything, mock.Anything, order.OrderId, model.ORDER_STATUS_PROCESSED, accrual).
+	repo.On("UpdateOrderStatusSum", mock.Anything, mock.Anything, order.OrderID, model.OrderStatusProcessed, accrual).
 		Return(nil).
 		Once()
 
@@ -213,7 +213,7 @@ func TestSuccessProcessRequestStatusWithAccrual(t *testing.T) {
 
 	select {
 	case got := <-processedCh:
-		assert.Equal(t, order.OrderId, got)
+		assert.Equal(t, order.OrderID, got)
 	default:
 		t.Fatal("expected processed order id in channel")
 	}
@@ -240,20 +240,20 @@ func TestSuccessProcessRequestStatusWithoutAccrual(t *testing.T) {
 	}
 
 	order := &model.Order{
-		OrderId: "12345",
-		Status:  model.ORDER_STATUS_PROCESSING,
+		OrderID: "12345",
+		Status:  model.OrderStatusProcessing,
 	}
 
 	resp := &model.AccrualResponse{
-		Status:  model.ORDER_STATUS_INVALID,
+		Status:  model.OrderStatusInvalid,
 		Accrual: nil,
 	}
 
-	client.On("GetOrdersAccrual", order.OrderId).
+	client.On("GetOrdersAccrual", order.OrderID).
 		Return(resp, intPtr(http.StatusOK), nil).
 		Once()
 
-	repo.On("UpdateOrderStatus", mock.Anything, mock.Anything, order.OrderId, model.ORDER_STATUS_INVALID).
+	repo.On("UpdateOrderStatus", mock.Anything, mock.Anything, order.OrderID, model.OrderStatusInvalid).
 		Return(nil).
 		Once()
 
@@ -262,7 +262,7 @@ func TestSuccessProcessRequestStatusWithoutAccrual(t *testing.T) {
 
 	select {
 	case got := <-processedCh:
-		assert.Equal(t, order.OrderId, got)
+		assert.Equal(t, order.OrderID, got)
 	default:
 		t.Fatal("expected processed order id in channel")
 	}
@@ -280,11 +280,11 @@ func TestSuccessProcessRequestRegisteredOrProcessing(t *testing.T) {
 	}{
 		{
 			name:   "Статус регистрации запроса",
-			status: model.ORDER_STATUS_REGISTERED,
+			status: model.OrderStatusRegistered,
 		},
 		{
 			name:   "Статус в процессе",
-			status: model.ORDER_STATUS_PROCESSING,
+			status: model.OrderStatusProcessing,
 		},
 	}
 
@@ -305,15 +305,15 @@ func TestSuccessProcessRequestRegisteredOrProcessing(t *testing.T) {
 			}
 
 			order := &model.Order{
-				OrderId: "12345",
-				Status:  model.ORDER_STATUS_PROCESSING,
+				OrderID: "12345",
+				Status:  model.OrderStatusProcessing,
 			}
 
 			resp := &model.AccrualResponse{
 				Status: tt.status,
 			}
 
-			client.On("GetOrdersAccrual", order.OrderId).
+			client.On("GetOrdersAccrual", order.OrderID).
 				Return(resp, intPtr(http.StatusOK), nil).
 				Once()
 
@@ -322,7 +322,7 @@ func TestSuccessProcessRequestRegisteredOrProcessing(t *testing.T) {
 
 			select {
 			case got := <-processedCh:
-				assert.Equal(t, order.OrderId, got)
+				assert.Equal(t, order.OrderID, got)
 			default:
 				t.Fatal("expected processed order id in channel")
 			}

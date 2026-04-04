@@ -5,14 +5,12 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"io"
 	"log/slog"
 	"net/http"
 	"net/http/httptest"
 	"testing"
 
-	"github.com/ShiraazMoollatjie/goluhn"
 	"github.com/jackc/pgx/v5/pgconn"
 	handlerMocks "github.com/serg1732/practicum-first-coursework/internal/handler/mocks"
 	"github.com/serg1732/practicum-first-coursework/internal/model"
@@ -30,7 +28,7 @@ func withAccountID(req *http.Request, accountID int64) *http.Request {
 }
 
 func TestOrdersHandlerAddNewOrders(t *testing.T) {
-	t.Run("OrderId не в формате Луна", func(t *testing.T) {
+	t.Run("OrderID не в формате Луна", func(t *testing.T) {
 		repo := handlerMocks.NewOrdersRepository(t)
 		h := BuildOrdersHandler(repo)
 
@@ -121,8 +119,8 @@ func TestOrdersHandlerGetAllOrders(t *testing.T) {
 		accrualProcessed := 100.5
 		accrualNew := 0.0
 		expected := []model.Order{
-			{OrderId: "79927398713", Status: "PROCESSED", Accrual: &accrualProcessed},
-			{OrderId: "12345678903", Status: "NEW", Accrual: &accrualNew},
+			{OrderID: "79927398713", Status: "PROCESSED", Accrual: &accrualProcessed},
+			{OrderID: "12345678903", Status: "NEW", Accrual: &accrualNew},
 		}
 		var accountId int64 = 50
 		repo.

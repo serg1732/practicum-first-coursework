@@ -46,7 +46,7 @@ func TestBalanceRepoSuccessGetBalance(t *testing.T) {
 	balance, err := repo.GetBalance(context.Background(), logger, accountID)
 	assert.NoError(t, err)
 	assert.NotNil(t, balance)
-	assert.Equal(t, accountID, balance.AccountId)
+	assert.Equal(t, accountID, balance.AccountID)
 	assert.Equal(t, 100.5, balance.Balance)
 	assert.Equal(t, 20.0, balance.Withdraw)
 	assert.NoError(t, mock.ExpectationsWereMet())

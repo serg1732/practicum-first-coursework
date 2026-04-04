@@ -47,22 +47,22 @@ func TestSuccessOrdersRepoAddNewOrderCreated(t *testing.T) {
 
 	ctx := context.Background()
 	logger := setupTestLogger()
-	var accountId int64 = 10
+	var accountID int64 = 10
 	mock.ExpectQuery(regexp.QuoteMeta(
 		`SELECT * FROM "orders" WHERE "orders"."account_id" = $1 AND "orders"."order_id" = $2 ORDER BY "orders"."account_id" LIMIT $3`,
 	)).
-		WithArgs(accountId, "order-1", 1).
+		WithArgs(accountID, "order-1", 1).
 		WillReturnRows(sqlmock.NewRows([]string{"account_id", "order_id"}))
 
 	mock.ExpectBegin()
 	mock.ExpectExec(regexp.QuoteMeta(
 		`INSERT INTO "orders" ("account_id","order_id") VALUES ($1,$2)`,
 	)).
-		WithArgs(accountId, "order-1").
+		WithArgs(accountID, "order-1").
 		WillReturnResult(sqlmock.NewResult(1, 1))
 	mock.ExpectCommit()
 
-	created, err := repo.AddNewOrder(ctx, logger, accountId, "order-1")
+	created, err := repo.AddNewOrder(ctx, logger, accountID, "order-1")
 	assert.NoError(t, err)
 	assert.True(t, created)
 	requiredNotError(t, mock)
@@ -74,15 +74,15 @@ func TestOrdersRepoAddNewOrder(t *testing.T) {
 
 	ctx := context.Background()
 	logger := setupTestLogger()
-	var accountId int64 = 10
+	var accountID int64 = 10
 
 	mock.ExpectQuery(regexp.QuoteMeta(
 		`SELECT * FROM "orders" WHERE "orders"."account_id" = $1 AND "orders"."order_id" = $2 ORDER BY "orders"."account_id" LIMIT $3`,
 	)).
-		WithArgs(accountId, "order-1", 1).
-		WillReturnRows(sqlmock.NewRows([]string{"account_id", "order_id"}).AddRow(accountId, "order-1"))
+		WithArgs(accountID, "order-1", 1).
+		WillReturnRows(sqlmock.NewRows([]string{"account_id", "order_id"}).AddRow(accountID, "order-1"))
 
-	created, err := repo.AddNewOrder(ctx, logger, accountId, "order-1")
+	created, err := repo.AddNewOrder(ctx, logger, accountID, "order-1")
 	assert.NoError(t, err)
 	assert.False(t, created)
 	requiredNotError(t, mock)
@@ -94,15 +94,15 @@ func TestErrorOrdersRepoAddNewOrder(t *testing.T) {
 
 	ctx := context.Background()
 	logger := setupTestLogger()
-	var accountId int64 = 10
+	var accountID int64 = 10
 
 	mock.ExpectQuery(regexp.QuoteMeta(
 		`SELECT * FROM "orders" WHERE "orders"."account_id" = $1 AND "orders"."order_id" = $2 ORDER BY "orders"."account_id" LIMIT $3`,
 	)).
-		WithArgs(accountId, "order-1", 1).
+		WithArgs(accountID, "order-1", 1).
 		WillReturnError(errors.New("select failed"))
 
-	created, err := repo.AddNewOrder(ctx, logger, accountId, "order-1")
+	created, err := repo.AddNewOrder(ctx, logger, accountID, "order-1")
 	assert.Error(t, err)
 	assert.NotNil(t, err)
 	assert.False(t, created)
@@ -157,18 +157,18 @@ func TestSuccessOrdersRepoGetAllOrders(t *testing.T) {
 	logger := setupTestLogger()
 	now := time.Now()
 
-	var accountId int64 = 42
+	var accountID int64 = 42
 	mock.ExpectQuery(regexp.QuoteMeta(
 		`SELECT * FROM "orders" WHERE account_id = $1 ORDER BY uploaded_at DESC`,
 	)).
-		WithArgs(accountId).
+		WithArgs(accountID).
 		WillReturnRows(
 			sqlmock.NewRows([]string{"account_id", "order_id", "status", "accrual", "uploaded_at"}).
-				AddRow(accountId, "order-2", model.ORDER_STATUS_PROCESSING, 10.5, now).
-				AddRow(accountId, "order-1", model.ORDER_STATUS_NEW, 0.0, now.Add(-time.Minute)),
+				AddRow(accountID, "order-2", model.OrderStatusProcessing, 10.5, now).
+				AddRow(accountID, "order-1", model.OrderStatusNew, 0.0, now.Add(-time.Minute)),
 		)
 
-	orders, err := repo.GetAllOrders(ctx, logger, accountId)
+	orders, err := repo.GetAllOrders(ctx, logger, accountID)
 	assert.NoError(t, err)
 	assert.Len(t, orders, 2)
 	requiredNotError(t, mock)
@@ -180,15 +180,15 @@ func TestErrorOrdersRepoGetAllOrders(t *testing.T) {
 
 	ctx := context.Background()
 	logger := setupTestLogger()
-	var accountId int64 = 42
+	var accountID int64 = 42
 
 	mock.ExpectQuery(regexp.QuoteMeta(
 		`SELECT * FROM "orders" WHERE account_id = $1 ORDER BY uploaded_at DESC`,
 	)).
-		WithArgs(accountId).
+		WithArgs(accountID).
 		WillReturnError(errors.New("ошибка при select"))
 
-	orders, err := repo.GetAllOrders(ctx, logger, accountId)
+	orders, err := repo.GetAllOrders(ctx, logger, accountID)
 	assert.NotNil(t, err)
 	assert.Nil(t, orders)
 	requiredNotError(t, mock)
@@ -201,16 +201,16 @@ func TestOrdersRepoGetNewOrProcessingOrders(t *testing.T) {
 	ctx := context.Background()
 	logger := setupTestLogger()
 	now := time.Now()
-	var accountId int64 = 42
+	var accountID int64 = 42
 
 	mock.ExpectQuery(regexp.QuoteMeta(
 		`SELECT * FROM "orders" WHERE status = $1 OR status = $2 ORDER BY uploaded_at DESC`,
 	)).
-		WithArgs(model.ORDER_STATUS_NEW, model.ORDER_STATUS_PROCESSING).
+		WithArgs(model.OrderStatusNew, model.OrderStatusProcessing).
 		WillReturnRows(
 			sqlmock.NewRows([]string{"account_id", "order_id", "status", "accrual", "uploaded_at"}).
-				AddRow(accountId, "order-2", model.ORDER_STATUS_PROCESSING, 10.5, now).
-				AddRow(accountId, "order-1", model.ORDER_STATUS_NEW, 0.0, now.Add(-time.Minute)),
+				AddRow(accountID, "order-2", model.OrderStatusProcessing, 10.5, now).
+				AddRow(accountID, "order-1", model.OrderStatusNew, 0.0, now.Add(-time.Minute)),
 		)
 
 	orders, err := repo.GetNewOrProcessingOrders(ctx, logger)
@@ -229,7 +229,7 @@ func TestErrorOrdersRepoGetNewOrProcessingOrders(t *testing.T) {
 	mock.ExpectQuery(regexp.QuoteMeta(
 		`SELECT * FROM "orders" WHERE status = $1 OR status = $2 ORDER BY uploaded_at DESC`,
 	)).
-		WithArgs(model.ORDER_STATUS_NEW, model.ORDER_STATUS_PROCESSING).
+		WithArgs(model.OrderStatusNew, model.OrderStatusProcessing).
 		WillReturnError(errors.New("ошибка при select"))
 
 	orders, err := repo.GetNewOrProcessingOrders(ctx, logger)
@@ -265,7 +265,7 @@ func TestErrorOrdersRepoBalanceSelectError(t *testing.T) {
 
 	ctx := context.Background()
 	logger := setupTestLogger()
-	var accountId int64 = 42
+	var accountID int64 = 42
 
 	mock.ExpectBegin()
 	mock.ExpectQuery(regexp.QuoteMeta(
@@ -273,13 +273,13 @@ func TestErrorOrdersRepoBalanceSelectError(t *testing.T) {
 	)).
 		WithArgs(150.5, "PROCESSED", "order-1").
 		WillReturnRows(
-			sqlmock.NewRows([]string{"account_id"}).AddRow(accountId),
+			sqlmock.NewRows([]string{"account_id"}).AddRow(accountID),
 		)
 
 	mock.ExpectQuery(regexp.QuoteMeta(
 		`SELECT * FROM "balance" WHERE account_id = $1 ORDER BY "balance"."account_id" LIMIT $2 FOR UPDATE`,
 	)).
-		WithArgs(accountId, 1).
+		WithArgs(accountID, 1).
 		WillReturnError(errors.New("не удалось сохранить в баланс"))
 
 	mock.ExpectRollback()
@@ -296,26 +296,26 @@ func TestErrorOrdersRepoBalanceSaveError(t *testing.T) {
 	ctx := context.Background()
 	logger := setupTestLogger()
 
-	var accountId int64 = 42
+	var accountID int64 = 42
 	mock.ExpectBegin()
 	mock.ExpectQuery(regexp.QuoteMeta(
 		`UPDATE "orders" SET "accrual"=$1,"status"=$2 WHERE order_id = $3 RETURNING "account_id"`,
 	)).
 		WithArgs(150.5, "PROCESSED", "order-1").
 		WillReturnRows(
-			sqlmock.NewRows([]string{"account_id"}).AddRow(accountId),
+			sqlmock.NewRows([]string{"account_id"}).AddRow(accountID),
 		)
 
 	mock.ExpectQuery(regexp.QuoteMeta(
 		`SELECT * FROM "balance" WHERE account_id = $1 ORDER BY "balance"."account_id" LIMIT $2 FOR UPDATE`,
 	)).
-		WithArgs(accountId, 1).
-		WillReturnRows(sqlmock.NewRows([]string{"account_id", "balance", "withdraw"}).AddRow(accountId, 100.0, 0.0))
+		WithArgs(accountID, 1).
+		WillReturnRows(sqlmock.NewRows([]string{"account_id", "balance", "withdraw"}).AddRow(accountID, 100.0, 0.0))
 
 	mock.ExpectExec(regexp.QuoteMeta(
 		`UPDATE "balance" SET "account_id"=$1,"balance"=$2,"withdraw"=$3 WHERE account_id = $4`,
 	)).
-		WithArgs(accountId, 250.5, 0.0, accountId).
+		WithArgs(accountID, 250.5, 0.0, accountID).
 		WillReturnError(errors.New("не удалось сохранить в баланс"))
 
 	mock.ExpectRollback()
@@ -331,20 +331,20 @@ func TestSuccessOrdersRepoFindOrderById(t *testing.T) {
 	ctx := context.Background()
 	now := time.Now()
 
-	var accountId int64 = 42
+	var accountID int64 = 42
 	mock.ExpectQuery(regexp.QuoteMeta(
 		`SELECT * FROM "orders" WHERE order_id = $1 ORDER BY "orders"."order_id" LIMIT $2`,
 	)).
 		WithArgs("order-1", 1).
 		WillReturnRows(
 			sqlmock.NewRows([]string{"account_id", "order_id", "status", "accrual", "uploaded_at"}).
-				AddRow(accountId, "order-1", model.ORDER_STATUS_NEW, 0.0, now),
+				AddRow(accountID, "order-1", model.OrderStatusNew, 0.0, now),
 		)
 
 	order, err := repo.FindOrderById(ctx, "order-1")
 	assert.NoError(t, err)
 	assert.NotNil(t, order)
-	assert.Equal(t, "order-1", order.OrderId)
+	assert.Equal(t, "order-1", order.OrderID)
 	requiredNotError(t, mock)
 }
 

@@ -15,9 +15,9 @@ type BalanceRepoImpl struct {
 }
 
 // GetBalance получение баланса пользователя
-func (b *BalanceRepoImpl) GetBalance(ctx context.Context, log *slog.Logger, accountId int64) (*model.BalanceDB, error) {
+func (b *BalanceRepoImpl) GetBalance(ctx context.Context, log *slog.Logger, accountID int64) (*model.BalanceDB, error) {
 	var balance model.BalanceDB
-	if err := b.db.WithContext(ctx).Table("balance").Where("account_id = ?", accountId).First(&balance).Error; err != nil {
+	if err := b.db.WithContext(ctx).Table("balance").Where("account_id = ?", accountID).First(&balance).Error; err != nil {
 		log.Error("Ошибка при получении баланса", "error", err)
 		return nil, err
 	}
@@ -25,13 +25,13 @@ func (b *BalanceRepoImpl) GetBalance(ctx context.Context, log *slog.Logger, acco
 }
 
 // GetForUpdate изменение баланса
-func (b *BalanceRepoImpl) GetForUpdate(ctx context.Context, log *slog.Logger, accountId int64, sum float64) (bool, error) {
+func (b *BalanceRepoImpl) GetForUpdate(ctx context.Context, log *slog.Logger, accountID int64, sum float64) (bool, error) {
 	var balance model.BalanceDB
 	var updated = false
 	err := b.db.Transaction(func(tx *gorm.DB) error {
 		if err := tx.Table("balance").WithContext(ctx).
 			Clauses(clause.Locking{Strength: "UPDATE"}).
-			Where("account_id = ?", accountId).
+			Where("account_id = ?", accountID).
 			First(&balance).Error; err != nil {
 			log.Error("Ошибка при получении баланса", "error", err)
 			return err
@@ -42,13 +42,13 @@ func (b *BalanceRepoImpl) GetForUpdate(ctx context.Context, log *slog.Logger, ac
 		}
 		balance.Balance -= sum
 		balance.Withdraw += sum
-		if err := tx.WithContext(ctx).Table("balance").Where("account_id = ?", accountId).Save(&balance).Error; err != nil {
+		if err := tx.WithContext(ctx).Table("balance").Where("account_id = ?", accountID).Save(&balance).Error; err != nil {
 			log.Error("Ошибка при записи баланса", "error", err)
 			return err
 		}
 		updated = true
 		return nil
 	})
-	log.Debug("Успешное обновление баланса после списания", "accountId", accountId)
+	log.Debug("Успешное обновление баланса после списания", "accountID", accountID)
 	return updated, err
 }

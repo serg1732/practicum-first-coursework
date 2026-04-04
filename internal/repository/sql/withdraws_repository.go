@@ -15,10 +15,10 @@ type WithdrawsRepoImpl struct {
 }
 
 // AddWithdraw добавить списание
-func (w *WithdrawsRepoImpl) AddWithdraw(ctx context.Context, log *slog.Logger, accountId int64, withdraw *model.WithdrawRequest) error {
+func (w *WithdrawsRepoImpl) AddWithdraw(ctx context.Context, log *slog.Logger, accountID int64, withdraw *model.WithdrawRequest) error {
 	withdrawDB := &model.Withdrawals{
-		AccountId:   accountId,
-		OrderId:     withdraw.Order,
+		AccountID:   accountID,
+		OrderID:     withdraw.Order,
 		Sum:         withdraw.Sum,
 		ProcessedAt: time.Now(),
 	}
@@ -32,16 +32,16 @@ func (w *WithdrawsRepoImpl) AddWithdraw(ctx context.Context, log *slog.Logger, a
 }
 
 // GetWithdrawals поиск всех списаний для пользователя
-func (b *WithdrawsRepoImpl) GetWithdrawals(ctx context.Context, log *slog.Logger, accountId int64) ([]*model.Withdrawals, error) {
+func (w *WithdrawsRepoImpl) GetWithdrawals(ctx context.Context, log *slog.Logger, accountID int64) ([]*model.Withdrawals, error) {
 	var withdrawals []*model.Withdrawals
 
-	if err := b.db.WithContext(ctx).Table("withdraws").
+	if err := w.db.WithContext(ctx).Table("withdraws").
 		Order("processed_at DESC").
-		Where("account_id = ?", accountId).
+		Where("account_id = ?", accountID).
 		Find(&withdrawals).Error; err != nil {
 		log.Error("Ошибка при получении баланса", "error", err)
 		return nil, err
 	}
-	log.Debug("Успешное получение баланса", "accountId", accountId)
+	log.Debug("Успешное получение баланса", "accountId", accountID)
 	return withdrawals, nil
 }

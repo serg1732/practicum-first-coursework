@@ -19,8 +19,8 @@ type AccrualClient interface {
 
 type OrdersRepository interface {
 	GetNewOrProcessingOrders(ctx context.Context, log *slog.Logger) ([]model.Order, error)
-	UpdateOrderStatus(ctx context.Context, log *slog.Logger, orderId string, st string) error
-	UpdateOrderStatusSum(ctx context.Context, log *slog.Logger, orderId string, st string, accural float64) error
+	UpdateOrderStatus(ctx context.Context, log *slog.Logger, orderID string, st string) error
+	UpdateOrderStatusSum(ctx context.Context, log *slog.Logger, orderID string, st string, accrual float64) error
 }
 
 func BuildDispatcher(client AccrualClient, ordersRepo OrdersRepository, processedChannel chan string) Dispatcher {
@@ -61,11 +61,11 @@ func (d *Dispatcher) orderFinder(ctx context.Context, log *slog.Logger, rateLimi
 			}
 			for _, order := range orders {
 				d.mutex.Lock()
-				if _, ok := d.orderInWork[order.OrderId]; ok {
+				if _, ok := d.orderInWork[order.OrderID]; ok {
 					d.mutex.Unlock()
 					continue
 				}
-				d.orderInWork[order.OrderId] = order
+				d.orderInWork[order.OrderID] = order
 				d.mutex.Unlock()
 				g.Go(func() error {
 					return d.processRequest(groupContext, log, &order, delayRateLimit)
@@ -93,17 +93,17 @@ func (d *Dispatcher) orderCompleter(ctx context.Context, log *slog.Logger) {
 }
 
 func (d *Dispatcher) processRequest(ctx context.Context, log *slog.Logger, order *model.Order, rateLimitDelaySec int) error {
-	if order.Status == model.ORDER_STATUS_NEW {
-		if err := d.ordersRepository.UpdateOrderStatus(ctx, log, order.OrderId, model.ORDER_STATUS_PROCESSING); err != nil {
+	if order.Status == model.OrderStatusNew {
+		if err := d.ordersRepository.UpdateOrderStatus(ctx, log, order.OrderID, model.OrderStatusProcessing); err != nil {
 			log.Error("Ошибка при изменении статуса заказа")
 		}
 	}
 
-	resp, status, err := d.client.GetOrdersAccrual(order.OrderId)
+	resp, status, err := d.client.GetOrdersAccrual(order.OrderID)
 	log.Debug("Получен ответ от accrual сервиса", "response", resp)
 	if err != nil {
 		log.Error("ошибка при запросе в accrual сервис", "error", err)
-		if errUpdate := d.ordersRepository.UpdateOrderStatus(ctx, log, order.OrderId, model.ORDER_STATUS_INVALID); errUpdate != nil {
+		if errUpdate := d.ordersRepository.UpdateOrderStatus(ctx, log, order.OrderID, model.OrderStatusInvalid); errUpdate != nil {
 			log.Error("Ошибка обновления данных заказа", "error", errUpdate)
 		}
 	} else if *status != http.StatusOK {
@@ -116,17 +116,17 @@ func (d *Dispatcher) processRequest(ctx context.Context, log *slog.Logger, order
 		} else {
 			log.Error("Ошибка при получении данных")
 		}
-	} else if resp != nil && (resp.Status != model.ORDER_STATUS_REGISTERED && resp.Status != model.ORDER_STATUS_PROCESSING) {
+	} else if resp != nil && (resp.Status != model.OrderStatusRegistered && resp.Status != model.OrderStatusProcessing) {
 		if resp.Accrual != nil {
-			if errUpdate := d.ordersRepository.UpdateOrderStatusSum(ctx, log, order.OrderId, resp.Status, *resp.Accrual); errUpdate != nil {
+			if errUpdate := d.ordersRepository.UpdateOrderStatusSum(ctx, log, order.OrderID, resp.Status, *resp.Accrual); errUpdate != nil {
 				log.Error("Ошибка обновления данных заказа", "error", errUpdate)
 			}
 		} else {
-			if errUpdate := d.ordersRepository.UpdateOrderStatus(ctx, log, order.OrderId, resp.Status); errUpdate != nil {
+			if errUpdate := d.ordersRepository.UpdateOrderStatus(ctx, log, order.OrderID, resp.Status); errUpdate != nil {
 				log.Error("Ошибка обновления данных заказа", "error", errUpdate)
 			}
 		}
 	}
-	d.OrdersUpdateProcessed <- order.OrderId
+	d.OrdersUpdateProcessed <- order.OrderID
 	return nil
 }

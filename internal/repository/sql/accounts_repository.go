@@ -29,7 +29,7 @@ func (a AccountRepoImpl) Create(ctx context.Context, log *slog.Logger, authoriza
 			return err
 		}
 
-		if err := tx.WithContext(ctx).Table("balance").Create(&model.BalanceDB{AccountId: authorization.ID}).Error; err != nil {
+		if err := tx.WithContext(ctx).Table("balance").Create(&model.BalanceDB{AccountID: authorization.ID}).Error; err != nil {
 			log.Error("Ошибка при добавлении баланса", "error", err)
 			return err
 		}
