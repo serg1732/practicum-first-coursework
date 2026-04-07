@@ -1,0 +1,5 @@
+DROP TABLE IF EXISTS orders;
+DROP TABLE IF EXISTS balance;
+DROP TABLE IF EXISTS withdraws;
+DROP TABLE IF EXISTS accounts;
+DROP TYPE status;
